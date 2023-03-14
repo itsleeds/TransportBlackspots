@@ -59,5 +59,19 @@ make_lsoa_boundary_file <- function(radius = 500) {
   lsoa_transport_area_boundaries <- bind_rows(lsoa_boundaries_keep,
                                               lsoa_centroids_500m_keep)
 
+  # label the boundary of choice
+  lsoa_transport_area_boundaries <- lsoa_transport_area_boundaries %>%
+    mutate(area_used = ifelse(!is.na(lsoa_500m_area), "lsoa_centroid_buffer", "lsoa_full_boundary"))
+
+  # calculate the final areas and remove the intermediate area fields
+  lsoa_transport_area_boundaries <- lsoa_transport_area_boundaries %>%
+    mutate(boundary_area = st_area(geometry)) %>%
+    select(-lsoa_full_area,
+           -lsoa_500m_area)
+
+  # check
+  # table(is.na(lsoa_transport_area_boundaries$lsoa_full_area),
+  #       lsoa_transport_area_boundaries$area_used,
+  #       useNA = "ifany")
 
 }
