@@ -1,17 +1,15 @@
 library(UK2GTFS)
 library(dplyr)
 library(tmap)
+library(future.apply)
+
 tmap_mode("view")
 
+sw_gtfs = gtfs_read("C:/Users/toby.bridgeman/foe-work-on-cdrive/environmental-data-for-change/data/transport/itm_south_west_gtfs.zip")
 
-gtfs = gtfs_read("C:/Users/earmmor/Downloads/itm_south_west_gtfs.zip")
-calendar = gtfs$calendar
-summary(calendar$start_date)
-summary(calendar$end_date)
-
-
-
-
+calendar = sw_gtfs$calendar
+summary(sw_gtfs$start_date)
+summary(sw_gtfs$end_date)
 
 
 stop_counts <- sf::st_as_sf(stop_counts, coords = c("stop_lon","stop_lat"), crs = 4326)
