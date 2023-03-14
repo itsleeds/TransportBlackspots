@@ -86,9 +86,16 @@ count_stops <- function(gtfs,
                               enddate,
                               calendar$end_date)
 
+  #summary(calendar$end_date >= calendar$start_date)
   calendar_days <- calendar_days[calendar_days$service_id %in% calendar$service_id,]
   calendar_days <- calendar_days[calendar_days$date >= startdate,]
   calendar_days <- calendar_days[calendar_days$date <= enddate,]
+
+  # test
+  if(FALSE){
+    calendar = calendar[calendar$service_id == 1098944,]
+    calendar_days = calendar_days[calendar_days$service_id == 1098944,]
+  }
 
   calendar_days <- calendar_days %>%
     dplyr::group_by(service_id) %>%
@@ -130,6 +137,13 @@ count_stops <- function(gtfs,
   trips$runs_total <- trips$runs_monday + trips$runs_tuesday +
     trips$runs_wednesday + trips$runs_thursday + trips$runs_friday +
     trips$runs_saturday + trips$runs_sunday + trips$runs_extra - trips$runs_canceled
+
+  message("Summarising results")
+  trips$runs_days <- trips$runs_monday + trips$runs_tuesday +
+    trips$runs_wednesday + trips$runs_thursday + trips$runs_friday +
+    trips$runs_saturday + trips$runs_sunday
+
+  trips$runs_total <-  trips$runs_days + trips$runs_extra - trips$runs_canceled
 
   trips$runs_per_week <- trips$runs_total / ((as.numeric(trips$end_date - trips$start_date) + 1)/7)
 
