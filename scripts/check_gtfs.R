@@ -53,7 +53,7 @@ stops_2010_count <- st_as_sf(stops_2010_count, coords = c("stop_lon", "stop_lat"
 
 # Make plots
 
-bbox = st_bbox(stops_2004_count)
+bbox = c(-9.887695,49.837982,2.526855,61.480760)
 
 make_plot = function(x, yr, bbox){
   breaks = c(-10000,0,1,50,100,200,400,1000,5000,10000,200000)
