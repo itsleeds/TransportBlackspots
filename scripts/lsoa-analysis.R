@@ -3,7 +3,8 @@ library(sf)
 make_lsoa_boundary_file <- function(radius = 500) {
 
   # read in 2011 lsoa pop weighted centroids
-  lsoa_centroids <- st_read("data/lsoa/LSOA_(Dec_2011)_Population_Weighted_Centroids_in_England_and_Wales/LSOA_Dec_2011_PWC_in_England_and_Wales.shp")
+  lsoa_centroids <- st_read("data/lsoa/LSOA_(Dec_2011)_Population_Weighted_Centroids_in_England_and_Wales/LSOA_Dec_2011_PWC_in_England_and_Wales.shp",
+                            quiet = TRUE)
   # buffer centroids to 500m radius
   lsoa_centroids_500m <- st_buffer(x = lsoa_centroids,
                                    dist = radius,
@@ -23,7 +24,8 @@ make_lsoa_boundary_file <- function(radius = 500) {
   lsoa_centroid_areas <- st_drop_geometry(lsoa_centroids_500m)
 
   # read in 2011 lsoa boundary shape file
-  lsoa_boundaries <- st_read("../gis-data/boundaries/lsoa/LSOAs_Dec_2011_BFC_EW_V3/Lower_Layer_Super_Output_Areas_(December_2011)_Boundaries_Full_Clipped_(BFC)_EW_V3.shp")
+  lsoa_boundaries <- st_read("../gis-data/boundaries/lsoa/LSOAs_Dec_2011_BFC_EW_V3/Lower_Layer_Super_Output_Areas_(December_2011)_Boundaries_Full_Clipped_(BFC)_EW_V3.shp",
+                             quiet = TRUE)
   # sort out col names to align with centroid data
   colnames(lsoa_boundaries) <- tolower(names(lsoa_boundaries))
   # keep only id and geom fields, and calc full area of lsoa
@@ -75,3 +77,5 @@ make_lsoa_boundary_file <- function(radius = 500) {
   #       useNA = "ifany")
 
 }
+
+lsoa_boundary <- make_lsoa_boundary_file(radius = 500)
