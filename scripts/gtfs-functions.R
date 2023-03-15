@@ -307,16 +307,16 @@ stop_timetables <- function(gtfs,
            friday,
            saturday,
            sunday,
-           n_monday,
-           n_tuesday,
-           n_wednesday,
-           n_thursday,
-           n_friday,
-           n_saturday,
-           n_sunday,
-           n_weekdays,
-           n_working_weeks,
-           n_weekends,
+           #n_monday,
+           #n_tuesday,
+           #n_wednesday,
+           #n_thursday,
+           #n_friday,
+           #n_saturday,
+           #n_sunday,
+           #n_weekdays,
+           #n_working_weeks,
+           #n_weekends,
            runs_monday,
            runs_tuesday,
            runs_wednesday,
@@ -383,9 +383,10 @@ summarise_stops_by_day <- function(stops_calendar,
                                    startdate,
                                    enddate) {
 
-  # summarise total number of stops by each weekday
-  stops_weekend <- stops_calendar %>%
-    group_by(stop_id) %>%
+  # summarise total number of stops by service by each weekday
+  stops_summary <- stops_calendar %>%
+    group_by(stop_id,
+             service_id) %>%
     summarise(stops_monday = sum(runs_monday),
               stops_tuesday = sum(runs_tuesday),
               stops_wednesday = sum(runs_wednesday),
@@ -393,6 +394,38 @@ summarise_stops_by_day <- function(stops_calendar,
               stops_friday = sum(runs_friday),
               stops_saturday = sum(runs_saturday),
               stops_sunday = sum(runs_sunday)) %>%
+    ungroup()
+
+  # get extra and cancelled services for each service ID
+  calendar_days <- extra_and_cancelled_services(gtfs,
+                                                startdate,
+                                                enddate)
+
+  # join to stops summary
+  stops_summary <- left_join(stops_summary, calendar_days, by = "service_id")
+  # complete missing data (i.e. for services with no cancellations or extra services)
+  stops_summary[is.na(stops_summary)] <- 0
+
+  # make adjustments for these extra services and cancellations
+  stops_summary <- stops_summary %>%
+    mutate(stops_monday = stops_monday + monday_extra - monday_cancelled,
+           stops_tuesday = stops_tuesday + tuesday_extra - tuesday_cancelled,
+           stops_wednesday = stops_wednesday + wednesday_extra - wednesday_cancelled,
+           stops_thursday = stops_thursday + thursday_extra - thursday_cancelled,
+           stops_friday = stops_friday + friday_extra - friday_cancelled,
+           stops_saturday = stops_saturday + saturday_extra - saturday_cancelled,
+           stops_sunday = stops_sunday + sunday_extra - sunday_cancelled)
+
+  # now summarise just by stop ID for adjusted service details
+  stops_summary <- stops_summary %>%
+    group_by(stop_id) %>%
+    summarise(stops_monday = sum(stops_monday),
+              stops_tuesday = sum(stops_tuesday),
+              stops_wednesday = sum(stops_wednesday),
+              stops_thursday = sum(stops_thursday),
+              stops_friday = sum(stops_friday),
+              stops_saturday = sum(stops_saturday),
+              stops_sunday = sum(stops_sunday)) %>%
     ungroup() %>%
     mutate(stops_weekdays = stops_monday + stops_tuesday + stops_wednesday + stops_thursday + stops_friday)
 
@@ -408,7 +441,7 @@ summarise_stops_by_day <- function(stops_calendar,
   n_sun = length(which(wday(all_dates, label = TRUE) == "Sun"))
 
   # calculate runs per weekday
-  stops_weekend <- stops_weekend %>%
+  stops_summary <- stops_summary %>%
     mutate(stops_per_monday = stops_monday / n_mon,
            stops_per_tuesday = stops_tuesday / n_tue,
            stops_per_wednesday = stops_wednesday / n_wed,
@@ -427,13 +460,18 @@ summarise_all_stop_data <- function(stops_calendar,
                                     startdate,
                                     enddate) {
 
-  stops_calendar_rushhour <- stops_calendar %>%
-    filter(rush_hour)
+  # start timer
+  tic("Summarise stops by day of the week")
 
+  # summarise all services by day of the week
   stops_by_day <- summarise_stops_by_day(stops_calendar,
                                          startdate,
                                          enddate)
 
+  # get only services which stop at stops during rush hour period
+  stops_calendar_rushhour <- stops_calendar %>%
+    filter(rush_hour)
+  # and summarise these
   stops_by_day_rushhour <- summarise_stops_by_day(stops_calendar_rushhour,
                                                   startdate,
                                                   enddate)
@@ -467,6 +505,10 @@ summarise_all_stop_data <- function(stops_calendar,
   # turn into sf object.
   stops_runs <- sf::st_as_sf(stops_runs, coords = c("stop_lon","stop_lat"), crs = 4326)
 
+  # end timer and return stop data
+  toc()
+  return(stops_runs)
+
 }
 
 
@@ -493,37 +535,40 @@ calendar_days_of_week_count <- function(gtfs,
                                       enddate,
                                       calendar$end_date)
 
-  # count the number of days of the week in the time period
-  message("Counting number of each weekday in the time period")
-  future::plan("future::multisession")
+  # UPDATE: use function from stops_per_week_functions.R
+  calendar <- count_weekday_runs(calendar)
 
-  calendar$n_monday    <- future.apply::future_mapply(countwd2, startdate = calendar$start_date, enddate = calendar$end_date, weekday = "Monday")
-  calendar$n_tuesday   <- future.apply::future_mapply(countwd2, startdate = calendar$start_date, enddate = calendar$end_date, weekday = "Tuesday")
-  calendar$n_wednesday <- future.apply::future_mapply(countwd2, startdate = calendar$start_date, enddate = calendar$end_date, weekday = "Wednesday")
-  calendar$n_thursday  <- future.apply::future_mapply(countwd2, startdate = calendar$start_date, enddate = calendar$end_date, weekday = "Thursday")
-  calendar$n_friday    <- future.apply::future_mapply(countwd2, startdate = calendar$start_date, enddate = calendar$end_date, weekday = "Friday")
-  calendar$n_saturday  <- future.apply::future_mapply(countwd2, startdate = calendar$start_date, enddate = calendar$end_date, weekday = "Saturday")
-  calendar$n_sunday    <- future.apply::future_mapply(countwd2, startdate = calendar$start_date, enddate = calendar$end_date, weekday = "Sunday")
-
-  # with this information, we can now easily calculate the number of weekdays and weekend days in the period
-  calendar <- calendar %>%
-    mutate(n_weekdays = n_monday + n_tuesday + n_wednesday + n_thursday + n_friday) %>%
-    mutate(n_working_weeks = n_weekdays / 5,
-           n_weekends = (n_saturday + n_sunday) / 2)
-
-  future::plan("future::sequential")
-
-  # multiply the number of days of each week in each time period with the number of trips on each corresponding day of the week
-  message("Counting number of runs each week day during the time period")
-  calendar <- calendar %>%
-    dplyr::mutate(runs_monday = monday * n_monday,
-                  runs_tuesday = tuesday * n_tuesday,
-                  runs_wednesday = wednesday * n_wednesday,
-                  runs_thursday = thursday * n_thursday,
-                  runs_friday = friday * n_friday,
-                  runs_saturday = saturday * n_saturday,
-                  runs_sunday = sunday * n_sunday) %>%
-    dplyr::mutate(runs_weekdays = runs_monday + runs_tuesday + runs_wednesday + runs_thursday + runs_friday)
+  # # count the number of days of the week in the time period
+  # message("Counting number of each weekday in the time period")
+  # future::plan("future::multisession")
+  #
+  # calendar$n_monday    <- future.apply::future_mapply(countwd2, startdate = calendar$start_date, enddate = calendar$end_date, weekday = "Monday")
+  # calendar$n_tuesday   <- future.apply::future_mapply(countwd2, startdate = calendar$start_date, enddate = calendar$end_date, weekday = "Tuesday")
+  # calendar$n_wednesday <- future.apply::future_mapply(countwd2, startdate = calendar$start_date, enddate = calendar$end_date, weekday = "Wednesday")
+  # calendar$n_thursday  <- future.apply::future_mapply(countwd2, startdate = calendar$start_date, enddate = calendar$end_date, weekday = "Thursday")
+  # calendar$n_friday    <- future.apply::future_mapply(countwd2, startdate = calendar$start_date, enddate = calendar$end_date, weekday = "Friday")
+  # calendar$n_saturday  <- future.apply::future_mapply(countwd2, startdate = calendar$start_date, enddate = calendar$end_date, weekday = "Saturday")
+  # calendar$n_sunday    <- future.apply::future_mapply(countwd2, startdate = calendar$start_date, enddate = calendar$end_date, weekday = "Sunday")
+  #
+  # # with this information, we can now easily calculate the number of weekdays and weekend days in the period
+  # calendar <- calendar %>%
+  #   mutate(n_weekdays = n_monday + n_tuesday + n_wednesday + n_thursday + n_friday) %>%
+  #   mutate(n_working_weeks = n_weekdays / 5,
+  #          n_weekends = (n_saturday + n_sunday) / 2)
+  #
+  # future::plan("future::sequential")
+  #
+  # # multiply the number of days of each week in each time period with the number of trips on each corresponding day of the week
+  # message("Counting number of runs each week day during the time period")
+  # calendar <- calendar %>%
+  #   dplyr::mutate(runs_monday = monday * n_monday,
+  #                 runs_tuesday = tuesday * n_tuesday,
+  #                 runs_wednesday = wednesday * n_wednesday,
+  #                 runs_thursday = thursday * n_thursday,
+  #                 runs_friday = friday * n_friday,
+  #                 runs_saturday = saturday * n_saturday,
+  #                 runs_sunday = sunday * n_sunday) %>%
+  #   dplyr::mutate(runs_weekdays = runs_monday + runs_tuesday + runs_wednesday + runs_thursday + runs_friday)
 
 }
 
@@ -553,14 +598,14 @@ extra_and_cancelled_services <- function(gtfs,
   calendar_days <- calendar_days %>%
     group_by(service_id,
              day_type,
-             weekday_simple) %>%
+             weekday) %>%
     summarise(n = n()) %>%
     ungroup()
 
   # set weekdays to lower case, unite with day type and spread wide
   calendar_days <- calendar_days %>%
-    mutate(weekday_simple = tolower(weekday_simple)) %>%
-    unite(day_and_type, weekday_simple, day_type, sep = "_") %>%
+    mutate(weekday = tolower(weekday)) %>%
+    unite(day_and_type, weekday, day_type, sep = "_") %>%
     spread(key = day_and_type,
            value = n,
            fill = 0)
@@ -573,4 +618,45 @@ extra_and_cancelled_services <- function(gtfs,
 
   return(calendar_days)
 
+}
+
+summarise_stops_by_lsoa <- function(stops_runs) {
+
+  # start timer
+  tic("Stops summarised by LSOA")
+
+  # change crs system to BNG to align with LSOA boundary CRS
+  stops_runs <- st_transform(stops_runs, crs = 27700)
+
+  # get boundaries (which decides whether to use LSOA boundaries or radius from centroid - whichever is bigger)
+  lsoa_transit_boundary <- make_lsoa_boundary_file(radius = 500)
+
+  # intersect LSOA boundaries
+  stops_lsoa <- st_intersection(lsoa_transit_boundary, stops_runs)
+
+  # TODO: how to summarise stop data by lsoa?
+  stops_lsoa_summary <- stops_lsoa %>%
+    st_drop_geometry() %>%
+    group_by(lsoa11cd) %>%
+    summarise(stops_weekdays = sum(stops_weekdays, na.rm = TRUE),
+              stops_saturday = sum(stops_saturday, na.rm = TRUE),
+              stops_sunday = sum(stops_sunday, na.rm = TRUE),
+              stops_per_week = sum(stops_per_week, na.rm = TRUE),
+              stops_per_weekday = sum(stops_per_weekday, na.rm = TRUE),
+              stops_per_saturday = sum(stops_per_saturday, na.rm = TRUE),
+              stops_per_sunday = sum(stops_per_sunday, na.rm = TRUE),
+              rushhour_stops_weekdays = sum(rushhour_stops_weekdays, na.rm = TRUE),
+              rushhour_stops_per_weekday = sum(rushhour_stops_per_weekday, na.rm = TRUE),
+              number_of_bus_stops = n())
+
+
+  # get actual lsoa boundaries
+  lsoa_boundary <- st_read("../gis-data/boundaries/lsoa/LSOAs_Dec_2011_BFC_EW_V3/Lower_Layer_Super_Output_Areas_(December_2011)_Boundaries_Full_Clipped_(BFC)_EW_V3.shp",
+                           quiet = TRUE)
+
+  stops_lsoa_summary <- inner_join(lsoa_boundary, stops_lsoa_summary, by = c("LSOA11CD" = "lsoa11cd"))
+
+  # end timer and return output
+  toc()
+  return(stops_lsoa_summary)
 }

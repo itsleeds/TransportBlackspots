@@ -6,6 +6,7 @@ rm(list = ls())
 # load packages
 library(UK2GTFS)
 library(tidyverse)
+library(lubridate)
 library(tmap)
 library(future.apply)
 library(sf)
@@ -20,7 +21,7 @@ tmap_mode("view")
 # load scripts to create functions
 source("scripts/gtfs-functions.R")
 source("scripts/lsoa-analysis.R")
-
+source("R/stops_per_week_functions.R")
 
 # get gtfs data
 tic("GTFS file loaded")
@@ -32,7 +33,7 @@ startdate = lubridate::ymd("2023-03-01")
 enddate = lubridate::ymd("2023-03-31")
 
 # run functions...
-# TODO: account for extra and cancelled services
+# DONE: accounted for extra and cancelled services
 stops_calendar <- stop_timetables(gtfs,
                                   startdate,
                                   enddate)
@@ -42,36 +43,22 @@ stops_runs <- summarise_all_stop_data(stops_calendar,
                                       startdate,
                                       enddate)
 
-# change crs system to BNG to align with LSOA boundary CRS
-stops_runs <- st_transform(stops_runs, crs = 27700)
+stops_lsoa_summary <- summarise_stops_by_lsoa(stops_runs)
 
-# get boundaries (which decides whether to use LSOA boundaries or radius from centroid - whichever is bigger)
-lsoa_transit_boundary <- make_lsoa_boundary_file(radius = 500)
+st_write(dsn = "../gis-data/transport/sw-busstops.gpkg",
+         obj = stops_lsoa_summary,
+         layer = "sw-busstops-lsoa",
+         delete_dsn = FALSE,
+         delete_layer = TRUE)
 
-# intersect LSOA boundaries
-stops_lsoa <- st_intersection(lsoa_transit_boundary, stops_runs)
+st_write(dsn = "../gis-data/transport/sw-busstops.gpkg",
+         obj = stops_runs,
+         layer = "sw-busstops",
+         delete_dsn = FALSE,
+         delete_layer = TRUE)
 
-# TODO: how to summarise stop data by lsoa?
-stops_lsoa_summary <- stops_lsoa %>%
-  st_drop_geometry() %>%
-  group_by(lsoa11cd) %>%
-  summarise(stops_weekdays = sum(stops_weekdays, na.rm = TRUE),
-            stops_saturday = sum(stops_saturday, na.rm = TRUE),
-            stops_sunday = sum(stops_sunday, na.rm = TRUE),
-            stops_per_week = sum(stops_per_week, na.rm = TRUE),
-            stops_per_weekday = sum(stops_per_weekday, na.rm = TRUE),
-            stops_per_saturday = sum(stops_per_saturday, na.rm = TRUE),
-            stops_per_sunday = sum(stops_per_sunday, na.rm = TRUE),
-            rushhour_stops_weekdays = sum(rushhour_stops_weekdays, na.rm = TRUE),
-            rushhour_stops_per_weekday = sum(rushhour_stops_per_weekday, na.rm = TRUE))
 
-# get actual lsoa boundaries
-lsoa_boundary <- st_read("../gis-data/boundaries/lsoa/LSOAs_Dec_2011_BFC_EW_V3/Lower_Layer_Super_Output_Areas_(December_2011)_Boundaries_Full_Clipped_(BFC)_EW_V3.shp",
-                         quiet = TRUE)
-
-stops_lsoa_summary <- inner_join(lsoa_boundary, stops_lsoa_summary, by = c("LSOA11CD" = "lsoa11cd"))
-
-hist(stops_lsoa_summary$rushhour_stops_weekdays)
+hist(stops_lsoa_summary$number_of_bus_stops, breaks = 100)
 
 tm_shape(stops_lsoa_summary) +
   tm_fill(col = "rushhour_stops_weekdays", style = "quantile")

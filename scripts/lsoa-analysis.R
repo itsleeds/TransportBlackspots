@@ -77,5 +77,3 @@ make_lsoa_boundary_file <- function(radius = 500) {
   #       useNA = "ifany")
 
 }
-
-lsoa_boundary <- make_lsoa_boundary_file(radius = 500)

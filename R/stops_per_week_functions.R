@@ -37,11 +37,14 @@ count_weekday_runs <- function(cal){
   cal$runs_saturday <- cal$saturday * cal$n_Saturday
   cal$runs_sunday <- cal$sunday * cal$n_Sunday
 
+  cal <- cal %>%
+    mutate(runs_weekdays = runs_monday + runs_tuesday + runs_wednesday + runs_thursday + runs_friday)
+
   cal <- cal[,c("service_id",
                 "monday","tuesday","wednesday","thursday","friday",
                 "saturday","sunday","start_date","end_date",
                 "runs_monday","runs_tuesday","runs_wednesday", "runs_thursday",
-                "runs_friday","runs_saturday","runs_sunday")]
+                "runs_friday","runs_saturday","runs_sunday", "runs_weekdays")]
   return(cal)
 
 }
