@@ -16,6 +16,7 @@ gtfs_2007 <- gtfs_read(file.path(path,"NPTDR_2007.zip"))
 gtfs_2008 <- gtfs_read(file.path(path,"NPTDR_2008.zip"))
 gtfs_2009 <- gtfs_read(file.path(path,"NPTDR_2009.zip"))
 gtfs_2010 <- gtfs_read(file.path(path,"NPTDR_2010.zip"))
+gtfs_2011 <- gtfs_read(file.path(path,"NPTDR_2011.zip"))
 
 # Measure Service
 stops_2004_count = gtfs_stop_frequency(gtfs_2004,
@@ -39,7 +40,14 @@ stops_2009_count = gtfs_stop_frequency(gtfs_2009,
 stops_2010_count = gtfs_stop_frequency(gtfs_2010,
                                startdate = lubridate::ymd("2010-10-01"),
                                enddate = lubridate::ymd("2010-10-31"))
+stops_2011_count = gtfs_stop_frequency(gtfs_2011,
+                                       startdate = lubridate::ymd("2011-10-01"),
+                                       enddate = lubridate::ymd("2011-10-31"))
 
+# Missing stops
+stops_2009_count <- stops_2009_count[!is.na(stops_2009_count$stop_lon),]
+stops_2010_count <- stops_2010_count[!is.na(stops_2010_count$stop_lon),]
+stops_2011_count <- stops_2011_count[!is.na(stops_2011_count$stop_lon),]
 
 # Convert to sf
 stops_2004_count <- st_as_sf(stops_2004_count, coords = c("stop_lon", "stop_lat"), crs = 4326)
@@ -49,7 +57,7 @@ stops_2007_count <- st_as_sf(stops_2007_count, coords = c("stop_lon", "stop_lat"
 stops_2008_count <- st_as_sf(stops_2008_count, coords = c("stop_lon", "stop_lat"), crs = 4326)
 stops_2009_count <- st_as_sf(stops_2009_count, coords = c("stop_lon", "stop_lat"), crs = 4326)
 stops_2010_count <- st_as_sf(stops_2010_count, coords = c("stop_lon", "stop_lat"), crs = 4326)
-
+stops_2011_count <- st_as_sf(stops_2011_count, coords = c("stop_lon", "stop_lat"), crs = 4326)
 
 
 # Make plots
