@@ -14,36 +14,74 @@ for(j in 2014:2019){
     dir.create(file.path(base_path,"GTFS",year))
   }
 
-  zips = list.files(file.path(base_path, year), pattern = ".zip", full.names = TRUE)
+  if(j < 2017){
+    zips = list.files(file.path(base_path, year), pattern = ".zip", full.names = TRUE)
 
+    for(i in 1:length(zips)){
+      scot = grepl("S 2",zips[i])
+      nm = strsplit(zips[i], "/")[[1]]
+      nm = nm[length(nm)]
 
-  for(i in 1:length(zips)){
-    scot = grepl("S 2",zips[i])
-    nm = strsplit(zips[i], "/")[[1]]
-    nm = nm[length(nm)]
-
-    if(skip_done){
-      if(file.exists(file.path(base_path,"GTFS",year,nm))){
-        message("Skipping ",nm)
-        next
+      if(skip_done){
+        if(file.exists(file.path(base_path,"GTFS",year,nm))){
+          message("Skipping ",nm)
+          next
+        }
       }
+
+      message(Sys.time()," ",nm)
+      gtfs = transxchange2gtfs(zips[i],
+                               naptan = naptan,
+                               ncores = 30,
+                               silent = TRUE,
+                               cal = cal,
+                               scotland = ifelse(scot,"yes","no"),
+                               force_merge = TRUE,
+                               try_mode = FALSE)
+      gtfs = gtfs_clean(gtfs)
+      gtfs_write(gtfs,
+                 folder = file.path(base_path,"GTFS",year),
+                 name = gsub(".zip","",nm))
+
     }
 
-    message(Sys.time()," ",nm)
-    gtfs = transxchange2gtfs(zips[i],
-                             naptan = naptan,
-                             ncores = 30,
-                             silent = TRUE,
-                             cal = cal,
-                             scotland = ifelse(scot,"yes","no"),
-                             force_merge = TRUE,
-                             try_mode = FALSE)
-    gtfs = gtfs_clean(gtfs)
-    gtfs_write(gtfs,
-               folder = file.path(base_path,"GTFS",year),
-               name = gsub(".zip","",nm))
+
+  } else {
+    zips = list.files(file.path(base_path, year), pattern = ".zip", full.names = TRUE, recursive = TRUE)
+
+    for(i in 1:length(zips)){
+      scot = grepl("S.zip",zips[i])
+      nm = strsplit(zips[i], "/")[[1]]
+      nm = nm[c(length(nm) - 1,length(nm))]
+      nm = paste(nm[2:1], collapse = " ")
+      nm = gsub(".zip","",nm)
+
+      if(skip_done){
+        if(file.exists(file.path(base_path,"GTFS",year,paste0(nm,".zip")))){
+          message("Skipping ",nm)
+          next
+        }
+      }
+
+      message(Sys.time()," ",nm)
+      gtfs = transxchange2gtfs(zips[i],
+                               naptan = naptan,
+                               ncores = 30,
+                               silent = TRUE,
+                               cal = cal,
+                               scotland = ifelse(scot,"yes","no"),
+                               force_merge = TRUE,
+                               try_mode = FALSE)
+      gtfs = gtfs_clean(gtfs)
+      gtfs_write(gtfs,
+                 folder = file.path(base_path,"GTFS",year),
+                 name = gsub(".zip","",nm))
+
+    }
 
   }
+
+
 }
 
 # Errors

@@ -126,3 +126,47 @@ gtfs_stop_frequency <- function(gtfs,
   stops <- dplyr::left_join(gtfs$stops, stop_times_summary, by = "stop_id")
   return(stops)
 }
+
+
+#' Trim a GTFS file between two dates'
+#'
+#' @param gtfs GTFS object from gtfs_read()
+#' @param startdate Start date
+#' @param enddate End date
+#'
+#' @export
+gtfs_trim_dates <- function(gtfs,
+                            startdate = lubridate::ymd("2020-03-01"),
+                            enddate = lubridate::ymd("2020-04-30")) {
+
+  message("Trimming GTFS between ",startdate," and ",enddate)
+  stop_times <- gtfs$stop_times
+  trips <- gtfs$trips
+  calendar <- gtfs$calendar
+  calendar_days <- gtfs$calendar_dates
+
+  calendar <- calendar[calendar$start_date <= enddate,]
+  calendar <- calendar[calendar$end_date >= startdate,]
+
+  calendar$start_date <- dplyr::if_else(calendar$start_date < startdate,
+                                        startdate,
+                                        calendar$start_date)
+  calendar$end_date <- dplyr::if_else(calendar$end_date > enddate,
+                                      enddate,
+                                      calendar$end_date)
+
+  calendar_days <- calendar_days[calendar_days$service_id %in% calendar$service_id,]
+  calendar_days <- calendar_days[calendar_days$date >= startdate,]
+  calendar_days <- calendar_days[calendar_days$date <= enddate,]
+
+  trips <- trips[trips$service_id %in% calendar$service_id, ]
+  stop_times <- stop_times[stop_times$trip_id %in% trips$trip_id,]
+
+  gtfs$stop_times <- stop_times
+  gtfs$trips <- trips
+  gtfs$calendar <- calendar
+  gtfs$calendar_days <- calendar_days
+  return(gtfs)
+}
+
+
