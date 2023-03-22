@@ -37,8 +37,7 @@ count_weekday_runs <- function(cal){
   cal$runs_saturday <- cal$saturday * cal$n_Saturday
   cal$runs_sunday <- cal$sunday * cal$n_Sunday
 
-  cal <- cal %>%
-    mutate(runs_weekdays = runs_monday + runs_tuesday + runs_wednesday + runs_thursday + runs_friday)
+  cal <- dplyr::mutate(cal, runs_weekdays = runs_monday + runs_tuesday + runs_wednesday + runs_thursday + runs_friday)
 
   cal <- cal[,c("service_id",
                 "monday","tuesday","wednesday","thursday","friday",
@@ -83,10 +82,17 @@ gtfs_stop_frequency <- function(gtfs,
   calendar_days <- calendar_days[calendar_days$date >= startdate,]
   calendar_days <- calendar_days[calendar_days$date <= enddate,]
 
+  #TODO: Need to exclude when calendar_days outisde calendar
+  calendar_days <- dplyr::left_join(calendar_days,
+                             calendar[,c("service_id", "start_date", "end_date")],
+                             by = "service_id")
 
-  calendar_days <- calendar_days %>%
-    dplyr::group_by(service_id) %>%
-    dplyr::summarise(runs_extra = sum(exception_type == 1),
+  calendar_days <- calendar_days[calendar_days$date >= calendar_days$start_date, ]
+  calendar_days <- calendar_days[calendar_days$date <= calendar_days$end_date, ]
+
+  calendar_days <- dplyr::group_by(calendar_days, service_id)
+  calendar_days <- dplyr::summarise(calendar_days,
+                     runs_extra = sum(exception_type == 1),
                      runs_canceled = sum(exception_type == 2))
 
   trips <- trips[trips$service_id %in% calendar$service_id, ]
@@ -111,17 +117,12 @@ gtfs_stop_frequency <- function(gtfs,
 
   trips$runs_total <-  trips$runs_days + trips$runs_extra - trips$runs_canceled
 
-  trips$runs_per_week <- trips$runs_total / ((as.numeric(trips$end_date - trips$start_date) + 1)/7)
-
-  # Catch Single Day services
-  trips$runs_per_week <- ifelse(trips$start_date == trips$end_date, 1, trips$runs_per_week)
-
-  trips <- trips[,c("trip_id","start_date","end_date","runs_total","runs_per_week")]
+  trips <- trips[,c("trip_id","start_date","end_date","runs_total")]
   stop_times <- dplyr::left_join(stop_times, trips, by = "trip_id")
-  stop_times_summary <- stop_times %>%
-    dplyr::group_by(stop_id) %>%
-    dplyr::summarise(stops_total = sum(runs_total),
-                     stops_per_week = sum(runs_per_week))
+  stop_times_summary <- dplyr::group_by(stop_times, stop_id)
+  stop_times_summary <- dplyr::summarise(stop_times_summary, stops_total = sum(runs_total))
+
+  stop_times_summary$stops_per_week <- stop_times_summary$stops_total / ((as.numeric(enddate - startdate) + 1)/7)
 
   stops <- dplyr::left_join(gtfs$stops, stop_times_summary, by = "stop_id")
   return(stops)

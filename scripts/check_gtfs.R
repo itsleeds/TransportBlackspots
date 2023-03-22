@@ -42,8 +42,8 @@ make_plot = function(x, yr, bounds){
 }
 
 
-#for(i in c(2004:2011,2014:2019)){
-for(i in c(2015:2019)){
+for(i in c(2004:2011,2014:2022)){
+#for(i in c(2020:2022)){
   message(i)
   if(i < 2012){
     gtfs <- gtfs_read(file.path(path,paste0("NPTDR/GTFS/NPTDR_",i,".zip")))
@@ -80,11 +80,28 @@ for(i in c(2015:2019)){
     gtfs <- gtfs_stop_frequency(gtfs,
                                 startdate = lubridate::ymd(paste(i,"-10-01")),
                                 enddate = lubridate::ymd(paste(i,"-10-28")))
+  } else if (i == 2020) {
+    gtfs <- gtfs_read(file.path(path,paste0("TransXChange/GTFS/",i,"0701_merged.zip")))
+    gtfs <- gtfs_stop_frequency(gtfs,
+                                startdate = lubridate::ymd(paste(i,"-07-01")),
+                                enddate = lubridate::ymd(paste(i,"-07-07")))
+  }else if (i == 2021) {
+    gtfs <- gtfs_read(file.path(path,paste0("TransXChange/GTFS/",i,"1012_merged.zip")))
+    gtfs <- gtfs_stop_frequency(gtfs,
+                                startdate = lubridate::ymd(paste(i,"-10-12")),
+                                enddate = lubridate::ymd(paste(i,"-11-12")))
+  }else if (i == 2022) {
+    gtfs <- gtfs_read(file.path(path,paste0("TransXChange/GTFS/",i,"1102_merged.zip")))
+    gtfs <- gtfs_stop_frequency(gtfs,
+                                startdate = lubridate::ymd(paste(i,"-11-02")),
+                                enddate = lubridate::ymd(paste(i,"-12-03")))
   } else {
     stop()
   }
   gtfs <- gtfs[!is.na(gtfs$stop_lon),]
   gtfs <- st_as_sf(gtfs, coords = c("stop_lon", "stop_lat"), crs = 4326)
+
+  saveRDS(gtfs,paste0("data/stops_per_week_",i,".Rds"))
 
   make_plot(gtfs, i, bounds)
   rm(gtfs)
