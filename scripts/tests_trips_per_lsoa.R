@@ -35,18 +35,17 @@ if(file.exists("data/GB_LSOA_2011_full_or_500mBuff.Rds")){
 #qtm(stops_sf)
 
 
-
+# TODO: NA lsoa returned
 zone_service = gtfs_trips_per_zone(gtfs, zone)
 zone2 = readRDS("data/GB_LSOA_2011_super_generalised.Rds")
 zone2 = dplyr::left_join(zone2, zone_service, by = c("code" =  "zone_id"))
 
 tmap_mode("plot")
 m1 = tm_shape(zone2[,"runs_Mon_Morning Peak"]) +
-  tm_polygons("runs_Mon_Morning Peak",
+  tm_fill("runs_Mon_Morning Peak",
               style = "fixed",
               breaks = quantile(zone2$`runs_Mon_Morning Peak`, probs = seq(0,1,0.1), na.rm = T),
-              palette = tmaptools::get_brewer_pal("RdBu", n = 10),
-              lwd = 0.1)
+              palette = tmaptools::get_brewer_pal("RdBu", n = 10))
 tmap_save(m1, "plots/checks_GB_LSOA_test.png")
 
 
