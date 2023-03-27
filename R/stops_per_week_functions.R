@@ -69,6 +69,10 @@ gtfs_stop_frequency <- function(gtfs,
   calendar <- calendar[calendar$start_date <= enddate,]
   calendar <- calendar[calendar$end_date >= startdate,]
 
+  if(nrow(calendar) == 0){
+    stop("No services between dates, check your start and end dates")
+  }
+
   calendar$start_date <- dplyr::if_else(calendar$start_date < startdate,
                                         startdate,
                                         calendar$start_date)
@@ -82,7 +86,6 @@ gtfs_stop_frequency <- function(gtfs,
   calendar_days <- calendar_days[calendar_days$date >= startdate,]
   calendar_days <- calendar_days[calendar_days$date <= enddate,]
 
-  #TODO: Need to exclude when calendar_days outisde calendar
   calendar_days <- dplyr::left_join(calendar_days,
                              calendar[,c("service_id", "start_date", "end_date")],
                              by = "service_id")
@@ -144,7 +147,7 @@ gtfs_trim_dates <- function(gtfs,
   stop_times <- gtfs$stop_times
   trips <- gtfs$trips
   calendar <- gtfs$calendar
-  calendar_days <- gtfs$calendar_dates
+  calendar_dates <- gtfs$calendar_dates
 
   calendar <- calendar[calendar$start_date <= enddate,]
   calendar <- calendar[calendar$end_date >= startdate,]
@@ -156,9 +159,19 @@ gtfs_trim_dates <- function(gtfs,
                                       enddate,
                                       calendar$end_date)
 
-  calendar_days <- calendar_days[calendar_days$service_id %in% calendar$service_id,]
-  calendar_days <- calendar_days[calendar_days$date >= startdate,]
-  calendar_days <- calendar_days[calendar_days$date <= enddate,]
+  calendar_dates <- calendar_dates[calendar_dates$service_id %in% calendar$service_id,]
+  calendar_dates <- calendar_dates[calendar_dates$date >= startdate,]
+  calendar_dates <- calendar_dates[calendar_dates$date <= enddate,]
+
+  calendar_dates <- dplyr::left_join(calendar_dates,
+                                    calendar[,c("service_id", "start_date", "end_date")],
+                                    by = "service_id")
+
+  calendar_dates <- calendar_dates[calendar_dates$date >= calendar_dates$start_date, ]
+  calendar_dates <- calendar_dates[calendar_dates$date <= calendar_dates$end_date, ]
+
+  calendar_dates$start_date <- NULL
+  calendar_dates$end_date <- NULL
 
   trips <- trips[trips$service_id %in% calendar$service_id, ]
   stop_times <- stop_times[stop_times$trip_id %in% trips$trip_id,]
@@ -166,7 +179,7 @@ gtfs_trim_dates <- function(gtfs,
   gtfs$stop_times <- stop_times
   gtfs$trips <- trips
   gtfs$calendar <- calendar
-  gtfs$calendar_days <- calendar_days
+  gtfs$calendar_dates <- calendar_dates
   return(gtfs)
 }
 
