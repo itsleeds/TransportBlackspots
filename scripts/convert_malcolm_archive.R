@@ -9,7 +9,8 @@ skip_done = TRUE
 if(!dir.exists(file.path(base_path,"GTFS"))){dir.create(file.path(base_path,"GTFS"))}
 
 # dates
-dates = c("20200701","20211012","20221102")
+#dates = c("20200701","20211012","20221102")
+dates = c("20180515","20191008")
 
 for(i in seq_along(dates)){
   message(dates[i])

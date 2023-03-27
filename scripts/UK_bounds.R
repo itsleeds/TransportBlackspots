@@ -1,0 +1,10 @@
+library(sf)
+dir.create("tmpbounds")
+unzip("D:/OneDrive - University of Leeds/Data/OA Bounadries/GB_MSOA_2011_clipped.zip", exdir = "tmpbounds")
+bounds <- read_sf("tmpbounds/infuse_msoa_lyr_2011_clipped.shp")
+unlink("tmpbounds", recursive = TRUE)
+
+bounds <- st_union(bounds)
+bounds <- st_simplify(bounds, TRUE, 100)
+bounds <- st_transform(bounds, 4326)
+st_write(bounds, "data/UK_bounds.geojson")

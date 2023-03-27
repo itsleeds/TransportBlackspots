@@ -9,10 +9,11 @@ if(!dir.exists(file.path(base_path,"GTFS"))){dir.create(file.path(base_path,"GTF
 # dates
 dates = c("2018-10-16","2019-08-31","2020-11-26","2021-10-09","2022-11-02")
 
-for(i in seq_along(dates)){
+for(i in 5){
   message(dates[i])
 
   zps <- list.files(file.path(base_path,"timetable",dates[i]), full.names = TRUE, pattern = ".zip", recursive = T)
+  zps = zps[!grepl("xml",zps)]
   dir.create(file.path(base_path,"GTFS",paste0("GTFS_",dates[i])))
 
 
