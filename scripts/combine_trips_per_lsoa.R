@@ -5,7 +5,7 @@ library(dplyr)
 zone = readRDS("data/GB_LSOA_2011_super_generalised.Rds")
 zone_service <- list()
 
-for(i in c(2004:2011,2014)){
+for(i in c(2004:2011,2014:2022)){
   sub = readRDS(paste0("data/trips_per_lsoa_",i,".Rds"))
   sub$year = i
   zone_service[[i]] <- sub
@@ -69,12 +69,16 @@ zone_service <- zone_service[,c("zone_id",
                                 "year")]
 names(zone_service) <- gsub(" ","_",names(zone_service))
 
+
+
+
+
 zone_service_wide = tidyr::pivot_wider(zone_service,
                                        names_from = "year",
                                        values_from = names(zone_service)[2:16],
                                        values_fill = 0,
                                        id_cols = "zone_id")
-zone_service_wide$change_2007_2015_weekday_AM = round((zone_service_wide$`runs_weekday_Morning_Peak_2015` -
+zone_service_wide$change_2007_2022_weekday_AM = round((zone_service_wide$`runs_weekday_Morning_Peak_2022` -
   zone_service_wide$`runs_weekday_Morning_Peak_2007`) / zone_service_wide$`runs_weekday_Morning_Peak_2007` * 100, 2)
 
 
@@ -85,6 +89,12 @@ la = read.csv("data/GB_OA_LSOA_MSOA_LAD_Classifications_2017.csv")
 la = la[,c("LSOA11CD","LAD17NM","RGN11NM")]
 la = la[!duplicated(la$LSOA11CD),]
 
+# Output
+zone_service_out <- left_join(zone_service, la, by = c("zone_id" = "LSOA11CD"))
+zone_service_out <- zone_service_out[,c(1,17:19,2:16)]
+
+zone_service_out <- zone_service_out[order(zone_service_out$zone_id, zone_service_out$year),]
+saveRDS(zone_service_out, "data/trips_per_lsoa_2004_2022.Rds")
 
 tmap_mode("view")
 # m1 = tm_shape(zone2[,"change_2007_2011_Mon_AM"]) +
@@ -96,28 +106,27 @@ tmap_mode("view")
 
 
 m2 = tm_shape(zone2) +
-  tm_fill("change_2007_2018_weekday_AM",
+  tm_fill("change_2007_2022_weekday_AM",
           style = "fixed",
           breaks = c(-100,-50,-20,-10,-5,0,5,10,20,50,100,200,500,Inf),
           palette = tmaptools::get_brewer_pal("RdBu", n = 13),
-          popup.vars = c("change_2007_2018_weekday_AM",
-                         "runs_weekday_Morning_Peak_2004","runs_weekday_Morning_Peak_2007","runs_weekday_Morning_Peak_2011","runs_weekday_Morning_Peak_2015","runs_weekday_Morning_Peak_2018",
-                         "runs_weekday_Midday_2004","runs_weekday_Midday_2007","runs_weekday_Midday_2011","runs_weekday_Midday_2015","runs_weekday_Midday_2018"
+          popup.vars = c("change_2007_2022_weekday_AM",
+                         "runs_weekday_Morning_Peak_2004","runs_weekday_Morning_Peak_2007","runs_weekday_Morning_Peak_2011","runs_weekday_Morning_Peak_2015","runs_weekday_Morning_Peak_2018","runs_weekday_Morning_Peak_2022",
+                         "runs_weekday_Midday_2004","runs_weekday_Midday_2007","runs_weekday_Midday_2011","runs_weekday_Midday_2015","runs_weekday_Midday_2018","runs_weekday_Midday_2022"
                          ))
 
 # LA trends
 
 zone_service_la = zone_service
 zone_service_la = dplyr::left_join(zone_service_la, la, by = c("zone_id" = "LSOA11CD"))
-zone_service_la = group_by(zone_service_la, LAD17NM, year) %>%
+zone_service_la = group_by(zone_service_la, RGN11NM, year) %>%
   summarise(tot_weekday_Morning_Peak = sum(runs_weekday_Morning_Peak, na.rm = T))
-zone_service_max = group_by(zone_service_la, LAD17NM) %>%
+zone_service_max = group_by(zone_service_la, RGN11NM) %>%
   summarise(max_weekday_Morning_Peak = max(tot_weekday_Morning_Peak, na.rm = T))
 
-zone_service_la <- left_join(zone_service_la, zone_service_max, by = "LAD17NM")
+zone_service_la <- left_join(zone_service_la, zone_service_max, by = "RGN11NM")
 zone_service_la$percent <- zone_service_la$tot_weekday_Morning_Peak / zone_service_la$max_weekday_Morning_Peak
 
-ggplot(zone_service_la, aes(x = year, y = percent, color = LAD17NM)) +
+ggplot(zone_service_la, aes(x = year, y = percent, color = RGN11NM)) +
   geom_line(lwd = 1) +
-  theme(legend.position="none") #+
   scale_color_brewer(palette="Set3")
