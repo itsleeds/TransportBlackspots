@@ -379,7 +379,8 @@ stop_timetables <- function(gtfs,
 #'  - all weekday rushhour trips
 #'  - all saturday trips
 #'  - all sunday trips
-summarise_stops_by_day <- function(stops_calendar,
+summarise_stops_by_day <- function(gtfs,
+                                   stops_calendar,
                                    startdate,
                                    enddate) {
 
@@ -454,9 +455,9 @@ summarise_stops_by_day <- function(stops_calendar,
 
 }
 
-#
-summarise_all_stop_data <- function(stops_calendar,
-                                    gtfs,
+# take the stops data for all of
+summarise_all_stop_data <- function(gtfs,
+                                    stops_calendar,
                                     startdate,
                                     enddate) {
 
@@ -464,28 +465,12 @@ summarise_all_stop_data <- function(stops_calendar,
   tic("Summarise stops by day of the week")
 
   # summarise all services by day of the week
-  stops_by_day <- summarise_stops_by_day(stops_calendar,
+  stops_by_day <- summarise_stops_by_day(gtfs,
+                                         stops_calendar,
                                          startdate,
                                          enddate)
 
-  # get only services which stop at stops during rush hour period
-  stops_calendar_rushhour <- stops_calendar %>%
-    filter(rush_hour)
-  # and summarise these
-  stops_by_day_rushhour <- summarise_stops_by_day(stops_calendar_rushhour,
-                                                  startdate,
-                                                  enddate)
-
-  stops_by_day_rushhour <- stops_by_day_rushhour %>%
-    select(stop_id,
-           rushhour_stops_weekdays = stops_weekdays,
-           #runs_saturday,
-           #runs_sunday,
-           rushhour_stops_per_weekday = stops_per_weekday,
-           #runs_per_saturday,
-           #runs_per_sunday
-    )
-
+  # keep only the stops by days fields
   stops_by_day <- stops_by_day %>%
     select(stop_id,
            stops_weekdays,
@@ -496,7 +481,29 @@ summarise_all_stop_data <- function(stops_calendar,
            stops_per_saturday,
            stops_per_sunday)
 
+  # get only services which stop at stops during rush hour period
+  stops_calendar_rushhour <- stops_calendar %>%
+    filter(rush_hour)
+  # and summarise these
+  stops_by_day_rushhour <- summarise_stops_by_day(gtfs,
+                                                  stops_calendar_rushhour,
+                                                  startdate,
+                                                  enddate)
+
+  # rename the rush hour stop details
+  stops_by_day_rushhour <- stops_by_day_rushhour %>%
+    select(stop_id,
+           rushhour_stops_weekdays = stops_weekdays,
+           #runs_saturday,
+           #runs_sunday,
+           rushhour_stops_per_weekday = stops_per_weekday,
+           #runs_per_saturday,
+           #runs_per_sunday
+    )
+
+  # join the full data set and the rush hour data set together
   stops_runs <- left_join(stops_by_day, stops_by_day_rushhour, by = "stop_id")
+  # set any na values to 0.
   stops_runs[is.na(stops_runs)] <- 0
 
   # join summary stop data to main gtfs stop file.
@@ -527,7 +534,7 @@ calendar_days_of_week_count <- function(gtfs,
   # we are okay with routes that started before the time period and continue through the time window of interest
   # we are also okay with routes that continue on after time window of interest.
   # but we need to set the dates to be within the time window of interest, otherwise it will mess things up during the analysis.
-  # rememer these are just the timetable routes and how long that time table runs for.
+  # remember these are just the timetable routes and how long that time table runs for.
   calendar$start_date <- dplyr::if_else(calendar$start_date < startdate,
                                         startdate,
                                         calendar$start_date)
@@ -577,6 +584,7 @@ extra_and_cancelled_services <- function(gtfs,
                                          startdate,
                                          enddate) {
 
+  # get calendar dates data frame from GTFS file
   calendar_days <- gtfs$calendar_dates
 
   # filter calendar days within period of interest
@@ -615,11 +623,36 @@ extra_and_cancelled_services <- function(gtfs,
     calendar_days <- calendar_days %>%
       mutate(sunday_extra = 0)
   }
+  if(!"monday_extra" %in% names(calendar_days)) {
+    calendar_days <- calendar_days %>%
+      mutate(monday_extra = 0)
+  }
+  if(!"tuesday_extra" %in% names(calendar_days)) {
+    calendar_days <- calendar_days %>%
+      mutate(tuesday_extra = 0)
+  }
+  if(!"wednesday_extra" %in% names(calendar_days)) {
+    calendar_days <- calendar_days %>%
+      mutate(wednesday_extra = 0)
+  }
+  if(!"thursday_extra" %in% names(calendar_days)) {
+    calendar_days <- calendar_days %>%
+      mutate(thursday_extra = 0)
+  }
+  if(!"friday_extra" %in% names(calendar_days)) {
+    calendar_days <- calendar_days %>%
+      mutate(friday_extra = 0)
+  }
+  if(!"saturday_extra" %in% names(calendar_days)) {
+    calendar_days <- calendar_days %>%
+      mutate(saturday_extra = 0)
+  }
 
   return(calendar_days)
 
 }
 
+# summarise stop data by LSOA by intersecting stop location sf data with LSOA boundaries (or 500m radius from centroid)
 summarise_stops_by_lsoa <- function(stops_runs) {
 
   # start timer
@@ -659,4 +692,24 @@ summarise_stops_by_lsoa <- function(stops_runs) {
   # end timer and return output
   toc()
   return(stops_lsoa_summary)
+}
+
+
+# summarise stops by LSOA
+
+make_lsoa_stop_summary <- function(gtfs,
+                                   startdate,
+                                   enddate) {
+
+  stops_calendar <- stop_timetables(gtfs,
+                                    startdate,
+                                    enddate)
+
+  stops_runs <- summarise_all_stop_data(gtfs,
+                                        stops_calendar,
+                                        startdate,
+                                        enddate)
+
+  stops_lsoa_summary <- summarise_stops_by_lsoa(stops_runs)
+
 }

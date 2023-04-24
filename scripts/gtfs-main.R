@@ -24,44 +24,31 @@ source("scripts/lsoa-analysis.R")
 source("R/stops_per_week_functions.R")
 
 # get gtfs data
-tic("GTFS file loaded")
-gtfs = gtfs_read("C:/Users/toby.bridgeman/foe-work-on-cdrive/environmental-data-for-change/data/transport/itm_south_west_gtfs.zip")
-toc()
+gtfs_wales = gtfs_read("C:/Users/toby.bridgeman/foe-work-on-cdrive/environmental-data-for-change/data/transport/itm_wales_gtfs.zip")
+#gtfs_london = gtfs_read("C:/Users/toby.bridgeman/foe-work-on-cdrive/environmental-data-for-change/data/transport/itm_london_gtfs.zip")
+#gtfs_southwest = gtfs_read("C:/Users/toby.bridgeman/foe-work-on-cdrive/environmental-data-for-change/data/transport/itm_south_west_gtfs.zip")
+#gtfs_midlands = gtfs_read("C:/Users/toby.bridgeman/foe-work-on-cdrive/environmental-data-for-change/data/transport/itm_west_midlands_gtfs.zip")
+gtfs_england = gtfs_read("C:/Users/toby.bridgeman/foe-work-on-cdrive/environmental-data-for-change/data/transport/itm_england_gtfs.zip")
 
 # set dates
 startdate = lubridate::ymd("2023-03-01")
 enddate = lubridate::ymd("2023-03-31")
 
-# run functions...
-# DONE: accounted for extra and cancelled services
-stops_calendar <- stop_timetables(gtfs,
-                                  startdate,
-                                  enddate)
+# run functions
+wales_stops_lsoa <- make_lsoa_stop_summary(gtfs_wales,
+                                           startdate,
+                                           enddate)
 
-stops_runs <- summarise_all_stop_data(stops_calendar,
-                                      gtfs,
-                                      startdate,
-                                      enddate)
+england_stops_lsoa <- make_lsoa_stop_summary(gtfs_england,
+                                             startdate,
+                                             enddate)
 
-stops_lsoa_summary <- summarise_stops_by_lsoa(stops_runs)
-
-st_write(dsn = "../gis-data/transport/sw-busstops.gpkg",
-         obj = stops_lsoa_summary,
-         layer = "sw-busstops-lsoa",
+# output results
+st_write(dsn = "../gis-data/transport/busstops.gpkg",
+         obj = england_stops_lsoa,
+         layer = "england-busstops-lsoa",
          delete_dsn = FALSE,
          delete_layer = TRUE)
-
-st_write(dsn = "../gis-data/transport/sw-busstops.gpkg",
-         obj = stops_runs,
-         layer = "sw-busstops",
-         delete_dsn = FALSE,
-         delete_layer = TRUE)
-
-
-hist(stops_lsoa_summary$number_of_bus_stops, breaks = 100)
-
-tm_shape(stops_lsoa_summary) +
-  tm_fill(col = "rushhour_stops_weekdays", style = "quantile")
 
 # provisional workings and tests ------------------------------------------
 
