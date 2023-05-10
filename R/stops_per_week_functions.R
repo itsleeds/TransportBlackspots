@@ -158,20 +158,21 @@ gtfs_trim_dates <- function(gtfs,
   calendar$end_date <- dplyr::if_else(calendar$end_date > enddate,
                                       enddate,
                                       calendar$end_date)
+  if(!is.null(calendar_dates)){
+    calendar_dates <- calendar_dates[calendar_dates$service_id %in% calendar$service_id,]
+    calendar_dates <- calendar_dates[calendar_dates$date >= startdate,]
+    calendar_dates <- calendar_dates[calendar_dates$date <= enddate,]
 
-  calendar_dates <- calendar_dates[calendar_dates$service_id %in% calendar$service_id,]
-  calendar_dates <- calendar_dates[calendar_dates$date >= startdate,]
-  calendar_dates <- calendar_dates[calendar_dates$date <= enddate,]
+    calendar_dates <- dplyr::left_join(calendar_dates,
+                                       calendar[,c("service_id", "start_date", "end_date")],
+                                       by = "service_id")
 
-  calendar_dates <- dplyr::left_join(calendar_dates,
-                                    calendar[,c("service_id", "start_date", "end_date")],
-                                    by = "service_id")
+    calendar_dates <- calendar_dates[calendar_dates$date >= calendar_dates$start_date, ]
+    calendar_dates <- calendar_dates[calendar_dates$date <= calendar_dates$end_date, ]
 
-  calendar_dates <- calendar_dates[calendar_dates$date >= calendar_dates$start_date, ]
-  calendar_dates <- calendar_dates[calendar_dates$date <= calendar_dates$end_date, ]
-
-  calendar_dates$start_date <- NULL
-  calendar_dates$end_date <- NULL
+    calendar_dates$start_date <- NULL
+    calendar_dates$end_date <- NULL
+  }
 
   trips <- trips[trips$service_id %in% calendar$service_id, ]
   stop_times <- stop_times[stop_times$trip_id %in% trips$trip_id,]

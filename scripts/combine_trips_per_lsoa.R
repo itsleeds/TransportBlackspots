@@ -5,8 +5,8 @@ library(dplyr)
 zone = readRDS("data/GB_LSOA_2011_super_generalised.Rds")
 zone_service <- list()
 
-for(i in c(2004:2011,2014:2022)){
-  sub = readRDS(paste0("data/trips_per_lsoa_",i,".Rds"))
+for(i in c(2004:2011,2014:2020)){
+  sub = readRDS(paste0("data/trips_per_lsoa_by_mode_",i,".Rds"))
   sub$year = i
   zone_service[[i]] <- sub
 }
@@ -51,6 +51,7 @@ zone_service$runs_weekday_Night <- zone_service$runs_Mon_Night +
   zone_service$runs_Fri_Night / 5
 
 zone_service <- zone_service[,c("zone_id",
+                                "route_type",
                                 "runs_weekday_Night",
                                 "runs_weekday_Morning_Peak",
                                 "runs_weekday_Afternoon_Peak",
@@ -75,15 +76,26 @@ names(zone_service) <- gsub(" ","_",names(zone_service))
 
 zone_service_wide = tidyr::pivot_wider(zone_service,
                                        names_from = "year",
-                                       values_from = names(zone_service)[2:16],
+                                       values_from = names(zone_service)[3:17],
                                        values_fill = 0,
-                                       id_cols = "zone_id")
-zone_service_wide$change_2007_2022_weekday_AM = round((zone_service_wide$`runs_weekday_Morning_Peak_2022` -
+                                       id_cols = c("zone_id","route_type"))
+zone_service_wide$change_2007_2019_weekday_AM = round((zone_service_wide$`runs_weekday_Morning_Peak_2019` -
   zone_service_wide$`runs_weekday_Morning_Peak_2007`) / zone_service_wide$`runs_weekday_Morning_Peak_2007` * 100, 2)
 
 
 
-zone2 = dplyr::left_join(zone, zone_service_wide, by = c("code" =  "zone_id"))
+zone2 = dplyr::left_join(zone, zone_service_wide[zone_service_wide$route_type == 2, ], by = c("code" =  "zone_id"))
+zone3 = dplyr::left_join(zone, zone_service_wide[zone_service_wide$route_type == 3, ], by = c("code" =  "zone_id"))
+
+m2 = tm_shape(zone2) +
+  tm_fill("runs_weekday_Morning_Peak_2007",
+          style = "quantile",
+          n = 10)
+
+m3 = tm_shape(zone3) +
+  tm_fill("runs_weekday_Morning_Peak_2007",
+          style = "quantile",
+          n = 10)
 
 la = read.csv("data/GB_OA_LSOA_MSOA_LAD_Classifications_2017.csv")
 la = la[,c("LSOA11CD","LAD17NM","RGN11NM")]
@@ -94,7 +106,7 @@ zone_service_out <- left_join(zone_service, la, by = c("zone_id" = "LSOA11CD"))
 zone_service_out <- zone_service_out[,c(1,17:19,2:16)]
 
 zone_service_out <- zone_service_out[order(zone_service_out$zone_id, zone_service_out$year),]
-saveRDS(zone_service_out, "data/trips_per_lsoa_2004_2022.Rds")
+saveRDS(zone_service_out, "data/trips_per_lsoa_by_mode_2004_2023.Rds")
 
 tmap_mode("view")
 # m1 = tm_shape(zone2[,"change_2007_2011_Mon_AM"]) +

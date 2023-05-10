@@ -6,7 +6,8 @@ source("R/stops_per_week_functions.R")
 zone = readRDS("data/GB_LSOA_2011_full_or_500mBuff.Rds")
 zone = st_transform(zone, 4326)
 path = "D:/OneDrive - University of Leeds/Data/UK2GTFS/"
-for(i in c(2004:2011,2014:2023)){
+#for(i in c(2004:2011,2014:2023)){
+for(i in c(2018:2023)){
   message(i)
   if(i < 2012){
     gtfs <- gtfs_read(file.path(path,paste0("NPTDR/GTFS/NPTDR_",i,".zip")))
@@ -61,7 +62,7 @@ for(i in c(2004:2011,2014:2023)){
                                      startdate = lubridate::ymd(paste(i,"-10-16")),
                                      enddate = lubridate::ymd(paste(i,"-11-16")))
     gtfs = rbind(gtfs, gtfs_rail)
-    gtfs = dplyr::group_by(gtfs, zone_id)
+    gtfs = dplyr::group_by(gtfs, zone_id, route_type)
     gtfs = dplyr::summarise_all(gtfs, sum, na.rm = TRUE)
 
     rm(gtfs_rail)
@@ -79,7 +80,7 @@ for(i in c(2004:2011,2014:2023)){
                                      startdate = lubridate::ymd(paste(i,"-08-31")),
                                      enddate = lubridate::ymd(paste(i,"-09-30")))
     gtfs = rbind(gtfs, gtfs_rail)
-    gtfs = dplyr::group_by(gtfs, zone_id)
+    gtfs = dplyr::group_by(gtfs, zone_id, route_type)
     gtfs = dplyr::summarise_all(gtfs, sum, na.rm = TRUE)
     rm(gtfs_rail)
   } else if (i == 2020) {
@@ -96,7 +97,7 @@ for(i in c(2004:2011,2014:2023)){
                                      startdate = lubridate::ymd(paste(i,"-11-26")),
                                      enddate = lubridate::ymd(paste(i,"-12-26")))
     gtfs = rbind(gtfs, gtfs_rail)
-    gtfs = dplyr::group_by(gtfs, zone_id)
+    gtfs = dplyr::group_by(gtfs, zone_id, route_type)
     gtfs = dplyr::summarise_all(gtfs, sum, na.rm = TRUE)
     rm(gtfs_rail)
   }else if (i == 2021) {
@@ -113,7 +114,7 @@ for(i in c(2004:2011,2014:2023)){
                                      startdate = lubridate::ymd(paste(i,"-10-09")),
                                      enddate = lubridate::ymd(paste(i,"-11-09")))
     gtfs = rbind(gtfs, gtfs_rail)
-    gtfs = dplyr::group_by(gtfs, zone_id)
+    gtfs = dplyr::group_by(gtfs, zone_id, route_type)
     gtfs = dplyr::summarise_all(gtfs, sum, na.rm = TRUE)
     rm(gtfs_rail)
   }else if (i == 2022) {
@@ -130,7 +131,7 @@ for(i in c(2004:2011,2014:2023)){
                                      startdate = lubridate::ymd(paste(i,"-11-02")),
                                      enddate = lubridate::ymd(paste(i,"-12-02")))
     gtfs = rbind(gtfs, gtfs_rail)
-    gtfs = dplyr::group_by(gtfs, zone_id)
+    gtfs = dplyr::group_by(gtfs, zone_id, route_type)
     gtfs = dplyr::summarise_all(gtfs, sum, na.rm = TRUE)
     rm(gtfs_rail)
   }else if (i == 2023) {
@@ -147,7 +148,7 @@ for(i in c(2004:2011,2014:2023)){
                                      startdate = lubridate::ymd(paste(i,"-05-01")),
                                      enddate = lubridate::ymd(paste(i,"-06-01")))
     gtfs = rbind(gtfs, gtfs_rail)
-    gtfs = dplyr::group_by(gtfs, zone_id)
+    gtfs = dplyr::group_by(gtfs, zone_id, route_type)
     gtfs = dplyr::summarise_all(gtfs, sum, na.rm = TRUE)
     rm(gtfs_rail)
   } else {
