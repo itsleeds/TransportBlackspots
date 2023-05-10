@@ -41,7 +41,10 @@ if(file.exists("data/GB_LSOA_2011_full_or_500mBuff.Rds")){
   res = st_as_sfc(res, crs = 27700)
   lsoa_buff_small$geometry <- res
   zone = rbind(lsoa_big, lsoa_buff_small)
+  #Sometimes stops are just off the cost (slight location error)
+  zone = st_buffer(zone, 100)
   saveRDS(zone,"data/GB_LSOA_2011_full_or_500mBuff.Rds")
+
 }
 
 

@@ -189,7 +189,8 @@ gtfs_trips_per_zone <- function(gtfs,
                                 zone,
                                 startdate = min(gtfs$calendar$start_date),
                                 enddate = min(gtfs$calendar$start_date) + 31,
-                                zone_id = 1){
+                                zone_id = 1,
+                                by_mode = TRUE){
 
   if(!sf::st_is_longlat(zone)){
     message("Transforming zones to 4326")
@@ -209,7 +210,7 @@ gtfs_trips_per_zone <- function(gtfs,
   stops_zids <- sf::st_join(stops_zids, zone) # Some stops in multiple Zones
   if(anyNA(stops_zids$zone_id)){
     foo = stops_zids[is.na(stops_zids$zone_id),]
-    warning("Some stops outside all zones")
+    warning(nrow(foo)," stops outside all zones")
   }
 
   stops_zids <- stops_zids[,c("stop_id","zone_id")]
@@ -248,6 +249,13 @@ gtfs_trips_per_zone <- function(gtfs,
                        "runs_Wed","runs_Thu",
                        "runs_Fri","runs_Sat","runs_Sun")
 
+  # Add Modes
+  if(by_mode){
+    routes <- gtfs2$routes[,c("route_id","route_type")]
+    gtfs2$trips <- dplyr::left_join(gtfs2$trips, routes, by = "route_id")
+  }
+
+
   #Join to Trips
   trips <- dplyr::left_join(gtfs2$trips, calendar, by = "service_id")
   trips <- dplyr::left_join(trips, calendar_dates_summary, by = "service_id")
@@ -265,9 +273,16 @@ gtfs_trips_per_zone <- function(gtfs,
   trips$runs_Sun <- trips$runs_Sun + trips$extra_Sun - trips$canceled_Sun
 
   # trim out unneded data
-  trips <- trips[,c("trip_id","route_id","service_id",
-                    "runs_Mon","runs_Tue","runs_Wed","runs_Thu",
-                    "runs_Fri","runs_Sat","runs_Sun")]
+  if(by_mode){
+    trips <- trips[,c("trip_id","route_id","service_id","route_type",
+                      "runs_Mon","runs_Tue","runs_Wed","runs_Thu",
+                      "runs_Fri","runs_Sat","runs_Sun")]
+  } else {
+    trips <- trips[,c("trip_id","route_id","service_id",
+                      "runs_Mon","runs_Tue","runs_Wed","runs_Thu",
+                      "runs_Fri","runs_Sat","runs_Sun")]
+  }
+
 
   # Join on trip info to stop times
   stop_times <- dplyr::left_join(gtfs2$stop_times, trips, by = "trip_id")
@@ -279,9 +294,15 @@ gtfs_trips_per_zone <- function(gtfs,
                                breaks = c(-1, 6, 10, 15, 18, 20, Inf),
                                labels = c("Night", "Morning Peak", "Midday","Afternoon Peak","Evening","Night"))
 
-  stop_times <- stop_times[,c(c("trip_id","stop_id","time_bands",
-                                "runs_Mon","runs_Tue","runs_Wed","runs_Thu",
-                                "runs_Fri","runs_Sat","runs_Sun"))]
+  if(by_mode){
+    stop_times <- stop_times[,c(c("trip_id","stop_id","time_bands","route_type",
+                                  "runs_Mon","runs_Tue","runs_Wed","runs_Thu",
+                                  "runs_Fri","runs_Sat","runs_Sun"))]
+  } else {
+    stop_times <- stop_times[,c(c("trip_id","stop_id","time_bands",
+                                  "runs_Mon","runs_Tue","runs_Wed","runs_Thu",
+                                  "runs_Fri","runs_Sat","runs_Sun"))]
+  }
 
   stop_times <- dplyr::left_join(stop_times, stops_zids, by = "stop_id", multiple = "all")
   stop_times <- sf::st_drop_geometry(stop_times)
@@ -290,8 +311,10 @@ gtfs_trips_per_zone <- function(gtfs,
   res <- dplyr::group_by(stop_times, zone_id)
   res <- dplyr::group_split(res)
   future::plan(future::multisession)
-  res <- future.apply::future_lapply(res, internal_trips_per_zone)
+  res <- future.apply::future_lapply(res, internal_trips_per_zone, by_mode)
   future::plan(future::sequential)
+
+
   res <- collapse::unlist2d(res)
   res$`.id` <- NULL
   res[2:ncol(res)] <- lapply(res[2:ncol(res)],function(x){ifelse(is.na(x),0,x)})
@@ -306,11 +329,16 @@ gtfs_trips_per_zone <- function(gtfs,
 }
 
 
-internal_trips_per_zone <- function(x){
+internal_trips_per_zone <- function(x, by_mode = TRUE){
   x <- x[!duplicated(x$trip_id),]
   #zone_id = x$zone_id[1]
   #x <- x[,c("time_bands","runs_Mon","runs_Tue","runs_Wed","runs_Thu","runs_Fri","runs_Sat","runs_Sun")]
-  x <- dplyr::group_by(x,zone_id, time_bands)
+  if(by_mode){
+    x <- dplyr::group_by(x,zone_id, time_bands, route_type)
+  } else {
+    x <- dplyr::group_by(x,zone_id, time_bands)
+  }
+
   suppressMessages({
     x <- dplyr::summarise(x,
                           runs_Mon = sum(runs_Mon),
@@ -322,10 +350,20 @@ internal_trips_per_zone <- function(x){
                           runs_Sun = sum(runs_Sun))
   })
 
-  y <- tidyr::pivot_wider(x,
-                          id_cols = "zone_id",
-                          values_from = c(runs_Mon:runs_Sun),
-                          names_from = c(time_bands)
-  )
+  if(by_mode){
+    y <- tidyr::pivot_wider(x,
+                            id_cols = c("zone_id","route_type"),
+                            values_from = c(runs_Mon:runs_Sun),
+                            names_from = c(time_bands)
+    )
+  } else {
+    y <- tidyr::pivot_wider(x,
+                            id_cols = "zone_id",
+                            values_from = c(runs_Mon:runs_Sun),
+                            names_from = c(time_bands)
+    )
+  }
+
+
   return(y)
 }

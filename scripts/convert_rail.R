@@ -7,9 +7,10 @@ skip_done = TRUE
 if(!dir.exists(file.path(base_path,"GTFS"))){dir.create(file.path(base_path,"GTFS"))}
 
 # dates
-dates = c("2018-10-16","2019-08-31","2020-11-26","2021-10-09","2022-11-02")
+#dates = c("2018-10-16","2019-08-31","2020-11-26","2021-10-09","2022-11-02")
+dates = c("2023-05-03")
 
-for(i in 5){
+for(i in 1){
   message(dates[i])
 
   zps <- list.files(file.path(base_path,"timetable",dates[i]), full.names = TRUE, pattern = ".zip", recursive = T)

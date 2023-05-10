@@ -6,7 +6,7 @@ source("R/stops_per_week_functions.R")
 zone = readRDS("data/GB_LSOA_2011_full_or_500mBuff.Rds")
 zone = st_transform(zone, 4326)
 path = "D:/OneDrive - University of Leeds/Data/UK2GTFS/"
-for(i in c(2004:2011,2014:2022)){
+for(i in c(2004:2011,2014:2023)){
   message(i)
   if(i < 2012){
     gtfs <- gtfs_read(file.path(path,paste0("NPTDR/GTFS/NPTDR_",i,".zip")))
@@ -133,10 +133,27 @@ for(i in c(2004:2011,2014:2022)){
     gtfs = dplyr::group_by(gtfs, zone_id)
     gtfs = dplyr::summarise_all(gtfs, sum, na.rm = TRUE)
     rm(gtfs_rail)
+  }else if (i == 2023) {
+    gtfs <- gtfs_read(file.path(path,paste0("TransXChange/GTFS/",i,"0503_merged.zip")))
+    gtfs$stops <- gtfs$stops[!is.na(gtfs$stops$stop_lon),]
+    gtfs = gtfs_clean(gtfs)
+    gtfs <- gtfs_trips_per_zone(gtfs, zone = zone,
+                                startdate = lubridate::ymd(paste(i,"-05-01")),
+                                enddate = lubridate::ymd(paste(i,"-06-01")))
+    gtfs_rail <- gtfs_read(file.path(path,paste0("ATOC/GTFS/",i,"-05-03.zip")))
+    gtfs_rail$stops <- gtfs_rail$stops[!is.na(gtfs_rail$stops$stop_lon),]
+    gtfs_rail = gtfs_clean(gtfs_rail)
+    gtfs_rail <- gtfs_trips_per_zone(gtfs_rail, zone = zone,
+                                     startdate = lubridate::ymd(paste(i,"-05-01")),
+                                     enddate = lubridate::ymd(paste(i,"-06-01")))
+    gtfs = rbind(gtfs, gtfs_rail)
+    gtfs = dplyr::group_by(gtfs, zone_id)
+    gtfs = dplyr::summarise_all(gtfs, sum, na.rm = TRUE)
+    rm(gtfs_rail)
   } else {
     stop()
   }
 
-  saveRDS(gtfs,paste0("data/trips_per_lsoa_",i,".Rds"))
+  saveRDS(gtfs,paste0("data/trips_per_lsoa_by_mode_",i,".Rds"))
   rm(gtfs)
 }
