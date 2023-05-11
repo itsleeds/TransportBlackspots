@@ -131,16 +131,16 @@ m2 = tm_shape(zone2) +
 
 # LA trends
 
-zone_service_la = zone_service
-zone_service_la = dplyr::left_join(zone_service_la, la, by = c("zone_id" = "LSOA11CD"))
-zone_service_la = group_by(zone_service_la, RGN11NM, year) %>%
+zone_service_la = zone_service_out
+#zone_service_la = dplyr::left_join(zone_service_la, la, by = c("zone_id" = "LSOA11CD"))
+zone_service_la = group_by(zone_service_la, RGN11NM, year, route_type) %>%
   summarise(tot_weekday_Morning_Peak = sum(runs_weekday_Morning_Peak, na.rm = T))
-zone_service_max = group_by(zone_service_la, RGN11NM) %>%
+zone_service_max = group_by(zone_service_la, RGN11NM, route_type) %>%
   summarise(max_weekday_Morning_Peak = max(tot_weekday_Morning_Peak, na.rm = T))
 
-zone_service_la <- left_join(zone_service_la, zone_service_max, by = "RGN11NM")
+zone_service_la <- left_join(zone_service_la, zone_service_max, by = c("RGN11NM","route_type"))
 zone_service_la$percent <- zone_service_la$tot_weekday_Morning_Peak / zone_service_la$max_weekday_Morning_Peak
 
-ggplot(zone_service_la, aes(x = year, y = percent, color = RGN11NM)) +
+ggplot(zone_service_la[zone_service_la$route_type == 3, ], aes(x = year, y = percent, color = RGN11NM)) +
   geom_line(lwd = 1) +
   scale_color_brewer(palette="Set3")
