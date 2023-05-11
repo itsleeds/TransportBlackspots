@@ -5,7 +5,7 @@ library(dplyr)
 zone = readRDS("data/GB_LSOA_2011_super_generalised.Rds")
 zone_service <- list()
 
-for(i in c(2004:2011,2014:2020)){
+for(i in c(2004:2011,2014:2023)){
   sub = readRDS(paste0("data/trips_per_lsoa_by_mode_",i,".Rds"))
   sub$year = i
   zone_service[[i]] <- sub
@@ -70,7 +70,16 @@ zone_service <- zone_service[,c("zone_id",
                                 "year")]
 names(zone_service) <- gsub(" ","_",names(zone_service))
 
+# Output
+la = read.csv("data/GB_OA_LSOA_MSOA_LAD_Classifications_2017.csv")
+la = la[,c("LSOA11CD","LAD17NM","RGN11NM")]
+la = la[!duplicated(la$LSOA11CD),]
 
+zone_service_out <- left_join(zone_service, la, by = c("zone_id" = "LSOA11CD"))
+zone_service_out <- zone_service_out[,c(1:2,18:20,3:17)]
+
+zone_service_out <- zone_service_out[order(zone_service_out$zone_id, zone_service_out$route_type, zone_service_out$year),]
+saveRDS(zone_service_out, "data/trips_per_lsoa_by_mode_2004_2023.Rds")
 
 
 
@@ -97,16 +106,9 @@ m3 = tm_shape(zone3) +
           style = "quantile",
           n = 10)
 
-la = read.csv("data/GB_OA_LSOA_MSOA_LAD_Classifications_2017.csv")
-la = la[,c("LSOA11CD","LAD17NM","RGN11NM")]
-la = la[!duplicated(la$LSOA11CD),]
 
-# Output
-zone_service_out <- left_join(zone_service, la, by = c("zone_id" = "LSOA11CD"))
-zone_service_out <- zone_service_out[,c(1,17:19,2:16)]
 
-zone_service_out <- zone_service_out[order(zone_service_out$zone_id, zone_service_out$year),]
-saveRDS(zone_service_out, "data/trips_per_lsoa_by_mode_2004_2023.Rds")
+
 
 tmap_mode("view")
 # m1 = tm_shape(zone2[,"change_2007_2011_Mon_AM"]) +

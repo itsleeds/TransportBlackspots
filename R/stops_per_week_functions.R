@@ -294,6 +294,7 @@ gtfs_trips_per_zone <- function(gtfs,
   stop_times$time_bands <- cut(lubridate::hour(stop_times$departure_time),
                                breaks = c(-1, 6, 10, 15, 18, 20, Inf),
                                labels = c("Night", "Morning Peak", "Midday","Afternoon Peak","Evening","Night"))
+  stop_times = stop_times[!is.na(stop_times$time_bands),]
 
   if(by_mode){
     stop_times <- stop_times[,c(c("trip_id","stop_id","time_bands","route_type",
