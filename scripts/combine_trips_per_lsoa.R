@@ -139,8 +139,14 @@ zone_service_max = group_by(zone_service_la, RGN11NM, route_type) %>%
   summarise(max_weekday_Morning_Peak = max(tot_weekday_Morning_Peak, na.rm = T))
 
 zone_service_la <- left_join(zone_service_la, zone_service_max, by = c("RGN11NM","route_type"))
-zone_service_la$percent <- zone_service_la$tot_weekday_Morning_Peak / zone_service_la$max_weekday_Morning_Peak
+zone_service_la$percent <- zone_service_la$tot_weekday_Morning_Peak / zone_service_la$max_weekday_Morning_Peak * 100
+
+# Take out know missing data
+zone_service_la <- zone_service_la[!(zone_service_la$RGN11NM == "London" & zone_service_la$year %in% c(2004:2006,2014:2017)),]
+zone_service_la <- zone_service_la[!(zone_service_la$RGN11NM == "North East" & zone_service_la$year %in% c(2007:2008)),]
+zone_service_la <- zone_service_la[zone_service_la$year != 2004, ]
 
 ggplot(zone_service_la[zone_service_la$route_type == 3, ], aes(x = year, y = percent, color = RGN11NM)) +
   geom_line(lwd = 1) +
-  scale_color_brewer(palette="Set3")
+  scale_color_brewer(palette="Set3") +
+  ggtitle("Bus Service")

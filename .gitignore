@@ -43,3 +43,4 @@ data/GB_LSOA_2011_super_generalised.Rds
 data/GB_LSOA_2011_full_or_500mBuff.Rds
 data/EngWales_centroids_modified.geojson
 data/isochones_walk.Rds
+data/lsoa_wide.geojson
