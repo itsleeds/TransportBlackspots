@@ -191,10 +191,11 @@
   maplibregl.addProtocol("pmtiles",protocol.tile);
 
   var map = new maplibregl.Map({
-  container: 'map', // container id
-  style: 'style.json', // style URL
-  center: [0, 52], // starting position [lng, lat]
-  zoom: 7 // starting zoom
+  container: 'map',
+  style: 'style.json',
+  center: [0, 52],
+  zoom: 7,
+  hash: true
   });
 
   switch_lsoa = function(){

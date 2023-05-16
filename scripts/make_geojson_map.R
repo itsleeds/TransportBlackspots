@@ -29,7 +29,7 @@ tippecanoe -o lsoa.pmtiles \
 --layer=lsoa \
 --attribution=UniverstyofLeeds \
 -zg \
---minimum-zoom=6 \
+--minimum-zoom=5 \
 --coalesce-smallest-as-needed \
 --detect-shared-borders \
 --extend-zooms-if-still-dropping \
