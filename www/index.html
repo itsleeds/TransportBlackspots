@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="content-type" content="text/html">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="Description" content="Transport BlackSpots">
+
+  <title>Transport BlackSpots</title>
+
+  <!-- Set Up map -->
+  <script src="https://unpkg.com/pmtiles@2.7.1/dist/index.js"></script> <!-- v2.7.1 -->
+  <script src="https://unpkg.com/maplibre-gl@3.0.0-pre.4/dist/maplibre-gl.js"></script>
+  <link href="https://unpkg.com/maplibre-gl@3.0.0-pre.4/dist/maplibre-gl.css" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.2.0"></script>
+
+  <style>
+    #map {
+      position: relative;
+      width:100%;
+      height:800px;
+    }
+
+    /* The Modal (background) */
+    .modal {
+      display: none; /* Hidden by default */
+      position: fixed; /* Stay in place */
+      z-index: 1000; /* Sit on top */
+     left: 10%;
+      top: 5%;
+      width: 80%;
+      height: 600px;
+      overflow: auto; /* Enable scroll if needed */
+      background-color: white; /* Fallback color */
+      -webkit-animation-name: fadeIn; /* Fade in the background */
+      -webkit-animation-duration: 0.4s;
+      animation-name: fadeIn;
+      animation-duration: 0.4s;
+    }
+
+    /* Modal Content */
+    .modal-content {
+      position: fixed;
+      bottom: 0;
+      background-color: #fefefe;
+      height: calc(100% - 60px);
+      max-width: 1240px;
+      min-width: 90%;
+      overflow: scroll;
+      -webkit-animation-name: slideIn;
+      -webkit-animation-duration: 0.4s;
+      animation-name: slideIn;
+      animation-duration: 0.4s;
+      margin-left: 2%;
+      margin-right: 2%;
+    }
+
+    .modal-content:after {
+      content: "";
+      display: table;
+      clear: both;
+    }
+
+  </style>
+
+</head>
+<body style="overflow:hidden">
+
+<!-- Main Content -->
+<div class="content" style="overflow:hidden">
+<div id="map"></div>
+</div>
+
+<div id="menu">
+  <select id="select_day" name="select_day" onchange="switch_lsoa()">
+      <option value="weekday" selected>Weekday</option>
+      <option value="Sat" >Saturday</option>
+      <option value="Sun" >Sunday</option>
+  </select>
+
+  <select id="select_time" name="select_time" onchange="switch_lsoa()">
+      <option value="Morning_Peak" selected>Morning_Peak</option>
+      <option value="Midday" >Midday</option>
+      <option value="Afternoon_Peak" >Afternoon_Peak</option>
+      <option value="Evening" >Evening</option>
+      <option value="Night" >Night</option>
+  </select>
+
+  <select id="select_year" name="select_year" onchange="switch_lsoa()">
+      <option value="2004">2004</option>
+      <option value="2005">2005</option>
+      <option value="2006">2006</option>
+      <option value="2007">2007</option>
+      <option value="2008">2008</option>
+      <option value="2009">2009</option>
+      <option value="2010">2010</option>
+      <option value="2011">2011</option>
+      <option value="2014">2014</option>
+      <option value="2015">2015</option>
+      <option value="2016">2016</option>
+      <option value="2017">2017</option>
+      <option value="2018">2018</option>
+      <option value="2019">2019</option>
+      <option value="2020">2020</option>
+      <option value="2021">2021</option>
+      <option value="2022">2022</option>
+      <option value="2023" selected>2023</option>
+  </select>
+
+  <select id="select_mode" name="select_mode" onchange="switch_lsoa()">
+      <option value="0" selected>Tram/Light Rail</option>
+      <option value="1" >Metro</option>
+      <option value="2" >Rail</option>
+      <option value="3" >Bus</option>
+      <option value="4" >Ferry</option>
+  </select>
+
+
+  <p>
+    <label><input type="checkbox" id="comparecheckbox" value="false" onclick="switch_lsoa()">Compare years</label>
+
+    <select id="select_year_alt" name="select_year_alt" onchange="switch_lsoa()">
+      <option value="2004" >2004</option>
+      <option value="2005">2005</option>
+      <option value="2006">2006</option>
+      <option value="2007" selected>2007</option>
+      <option value="2008">2008</option>
+      <option value="2009">2009</option>
+      <option value="2010">2010</option>
+      <option value="2011">2011</option>
+      <option value="2014">2014</option>
+      <option value="2015">2015</option>
+      <option value="2016">2016</option>
+      <option value="2017">2017</option>
+      <option value="2018">2018</option>
+      <option value="2019">2019</option>
+      <option value="2020">2020</option>
+      <option value="2021">2021</option>
+      <option value="2022">2022</option>
+      <option value="2023">2023</option>
+  </select>
+
+  </p>
+
+</div>
+
+<div id="modal" class="modal">
+<div class="modal-header">
+  <span class="closemodal">&times;</span>
+  <div id="modal-title"><h2>Area Summary</h2></div>
+</div>
+
+<div class="modal-body">
+
+  <p>Chart of Bus Travel</p>
+  <div style="min-height:300px">
+      <div class="chart-container" style="height:400px">
+    			<canvas id="lsoa_chart"></canvas>
+    	</div>
+  </div>
+
+</div>
+
+</div>
+
+
+</div>
+
+
+<script>
+  var lsoa_chart;
+
+  var zone_modal = document.getElementById("modal");
+  // Get the <span> element that closes the modal
+  var span_modal = document.getElementsByClassName("closemodal")[0];
+
+  // When the user clicks on <span> (x), close the modal
+  span_modal.onclick = function() {
+    zone_modal.style.display = "none";
+  };
+
+  // When the user clicks anywhere outside of the modal, close it
+  window.onclick = function(event) {
+    if (event.target == zone_modal) {
+  	zone_modal.style.display = "none";
+    }
+  };
+
+
+  let protocol = new pmtiles.Protocol();
+  maplibregl.addProtocol("pmtiles",protocol.tile);
+
+  var map = new maplibregl.Map({
+  container: 'map',
+  style: 'style.json',
+  center: [0, 52],
+  zoom: 7,
+  hash: true
+  });
+
+  switch_lsoa = function(){
+
+    var checkBox = document.getElementById('comparecheckbox');
+
+    var layerID = "runs_" +
+    document.getElementById("select_day").value +
+    "_" +
+    document.getElementById("select_time").value +
+    "_" +
+    document.getElementById("select_year").value +
+    "_" +
+    document.getElementById("select_mode").value;
+
+
+    if (map.getLayer('lsoa')) map.removeLayer('lsoa');
+
+    if (checkBox.checked === true){
+      var layerIDcomapre = "runs_" +
+      document.getElementById("select_day").value +
+      "_" +
+      document.getElementById("select_time").value +
+      "_" +
+      document.getElementById("select_year_alt").value +
+      "_" +
+      document.getElementById("select_mode").value;
+      console.log(layerIDcomapre + " " + layerID);
+
+      map.addLayer({
+            'id': 'lsoa',
+            'type': 'fill',
+            'source': 'lsoa',
+            'source-layer': 'lsoa',
+            'paint': {
+              'fill-color': [
+                  'let',
+                  'density',
+                  ['/', ['get', layerID], ['get', layerIDcomapre]],
+                  [
+                    'interpolate',
+                      ['linear'],
+                      ['var', 'density'],
+                      0,['to-color', '#a50026'],
+                      0.5,['to-color', '#f46d43'],
+                      1,['to-color', '#e0f3f8'],
+                      1.5,['to-color', '#74add1'],
+                      2,['to-color', '#4575b4'],
+                      100,['to-color', '#313695']
+                  ]
+                ],
+              'fill-opacity': 0.7,
+              'fill-outline-color': 'rgba(0, 0, 0, 0.2)'
+            }
+          }, 'roads 0 Guided Busway Casing'
+          );
+
+    } else {
+
+      map.addLayer({
+            'id': 'lsoa',
+            'type': 'fill',
+            'source': 'lsoa',
+            'source-layer': 'lsoa',
+            'paint': {
+              'fill-color': ["step", ["get", layerID ],
+                "#a50026", 0,
+                "#d73027", 50,
+                "#f46d43", 100,
+                "#fdae61", 200,
+                "#fee090", 500,
+                "#e0f3f8", 1000,
+                "#abd9e9", 2000,
+                "#74add1", 4000,
+                "#4575b4", 5000,
+                "#313695", 1000000,
+                "#000000"],
+              'fill-opacity': 0.7,
+              'fill-outline-color': 'rgba(0, 0, 0, 0.2)'
+            }
+          }, 'roads 0 Guided Busway Casing'
+          );
+
+    }
+
+
+
+
+
+
+  }
+
+  make_chart = function(sub){
+    var chart_ctx = document.getElementById('lsoa_chart').getContext('2d');
+    if(lsoa_chart){
+		  lsoa_chart.destroy();
+	  }
+
+	  var weekday_Morning_Peak = [
+    sub.runs_weekday_Morning_Peak_2004_3,
+    sub.runs_weekday_Morning_Peak_2005_3,
+    sub.runs_weekday_Morning_Peak_2006_3,
+    sub.runs_weekday_Morning_Peak_2007_3,
+    sub.runs_weekday_Morning_Peak_2008_3,
+    sub.runs_weekday_Morning_Peak_2009_3,
+    sub.runs_weekday_Morning_Peak_2010_3,
+    sub.runs_weekday_Morning_Peak_2011_3,
+    null,
+    null,
+    sub.runs_weekday_Morning_Peak_2014_3,
+    sub.runs_weekday_Morning_Peak_2015_3,
+    sub.runs_weekday_Morning_Peak_2016_3,
+    sub.runs_weekday_Morning_Peak_2017_3,
+    sub.runs_weekday_Morning_Peak_2018_3,
+    sub.runs_weekday_Morning_Peak_2019_3,
+    sub.runs_weekday_Morning_Peak_2020_3,
+    sub.runs_weekday_Morning_Peak_2021_3,
+    sub.runs_weekday_Morning_Peak_2022_3,
+    sub.runs_weekday_Morning_Peak_2023_3,
+    ];
+
+    var weekday_Midday = [
+    sub.runs_weekday_Midday_2004_3,
+    sub.runs_weekday_Midday_2005_3,
+    sub.runs_weekday_Midday_2006_3,
+    sub.runs_weekday_Midday_2007_3,
+    sub.runs_weekday_Midday_2008_3,
+    sub.runs_weekday_Midday_2009_3,
+    sub.runs_weekday_Midday_2010_3,
+    sub.runs_weekday_Midday_2011_3,
+    null,
+    null,
+    sub.runs_weekday_Midday_2014_3,
+    sub.runs_weekday_Midday_2015_3,
+    sub.runs_weekday_Midday_2016_3,
+    sub.runs_weekday_Midday_2017_3,
+    sub.runs_weekday_Midday_2018_3,
+    sub.runs_weekday_Midday_2019_3,
+    sub.runs_weekday_Midday_2020_3,
+    sub.runs_weekday_Midday_2021_3,
+    sub.runs_weekday_Midday_2022_3,
+    sub.runs_weekday_Midday_2023_3,
+    ];
+
+    var weekday_Afternoon_Peak = [
+    sub.runs_weekday_Afternoon_Peak_2004_3,
+    sub.runs_weekday_Afternoon_Peak_2005_3,
+    sub.runs_weekday_Afternoon_Peak_2006_3,
+    sub.runs_weekday_Afternoon_Peak_2007_3,
+    sub.runs_weekday_Afternoon_Peak_2008_3,
+    sub.runs_weekday_Afternoon_Peak_2009_3,
+    sub.runs_weekday_Afternoon_Peak_2010_3,
+    sub.runs_weekday_Afternoon_Peak_2011_3,
+    null,
+    null,
+    sub.runs_weekday_Afternoon_Peak_2014_3,
+    sub.runs_weekday_Afternoon_Peak_2015_3,
+    sub.runs_weekday_Afternoon_Peak_2016_3,
+    sub.runs_weekday_Afternoon_Peak_2017_3,
+    sub.runs_weekday_Afternoon_Peak_2018_3,
+    sub.runs_weekday_Afternoon_Peak_2019_3,
+    sub.runs_weekday_Afternoon_Peak_2020_3,
+    sub.runs_weekday_Afternoon_Peak_2021_3,
+    sub.runs_weekday_Afternoon_Peak_2022_3,
+    sub.runs_weekday_Afternoon_Peak_2023_3,
+    ];
+
+    var weekday_Evening = [
+    sub.runs_weekday_Evening_2004_3,
+    sub.runs_weekday_Evening_2005_3,
+    sub.runs_weekday_Evening_2006_3,
+    sub.runs_weekday_Evening_2007_3,
+    sub.runs_weekday_Evening_2008_3,
+    sub.runs_weekday_Evening_2009_3,
+    sub.runs_weekday_Evening_2010_3,
+    sub.runs_weekday_Evening_2011_3,
+    null,
+    null,
+    sub.runs_weekday_Evening_2014_3,
+    sub.runs_weekday_Evening_2015_3,
+    sub.runs_weekday_Evening_2016_3,
+    sub.runs_weekday_Evening_2017_3,
+    sub.runs_weekday_Evening_2018_3,
+    sub.runs_weekday_Evening_2019_3,
+    sub.runs_weekday_Evening_2020_3,
+    sub.runs_weekday_Evening_2021_3,
+    sub.runs_weekday_Evening_2022_3,
+    sub.runs_weekday_Evening_2023_3,
+    ];
+
+    var weekday_Night = [
+    sub.runs_weekday_Night_2004_3,
+    sub.runs_weekday_Night_2005_3,
+    sub.runs_weekday_Night_2006_3,
+    sub.runs_weekday_Night_2007_3,
+    sub.runs_weekday_Night_2008_3,
+    sub.runs_weekday_Night_2009_3,
+    sub.runs_weekday_Night_2010_3,
+    sub.runs_weekday_Night_2011_3,
+    null,
+    null,
+    sub.runs_weekday_Night_2014_3,
+    sub.runs_weekday_Night_2015_3,
+    sub.runs_weekday_Night_2016_3,
+    sub.runs_weekday_Night_2017_3,
+    sub.runs_weekday_Night_2018_3,
+    sub.runs_weekday_Night_2019_3,
+    sub.runs_weekday_Night_2020_3,
+    sub.runs_weekday_Night_2021_3,
+    sub.runs_weekday_Night_2022_3,
+    sub.runs_weekday_Night_2023_3,
+    ];
+
+
+
+	lsoa_chart = new Chart(chart_ctx, {
+		type: 'line',
+		data: {
+			labels: ['2004','2005','2006','2007','2008','2009','2010',
+			'2011','2012','2013','2014','2015','2016','2017','2018',
+			'2019','2020','2021','2022','2023'
+			],
+			datasets: [{
+				label: 'Weekday Morning Peak',
+				data: weekday_Morning_Peak,
+				backgroundColor: 'rgba(228,26,28, 0.8)',
+				borderColor: 'rgba(228,26,28, 1)',
+				borderWidth: 1,
+				order: 1
+			},
+			{
+				label: 'Weekday Midday',
+				data: weekday_Midday,
+				backgroundColor: 'rgba(55,126,184, 0.8)',
+				borderColor: 'rgba(55,126,184, 1)',
+				borderWidth: 1,
+				order: 1
+			},
+			{
+				label: 'Weekday Afternoon Peak',
+				data: weekday_Afternoon_Peak,
+				backgroundColor: 'rgba(77,175,74, 0.8)',
+				borderColor: 'rgba(77,175,74, 1)',
+				borderWidth: 1,
+				order: 1
+			},
+			{
+				label: 'Weekday Evening',
+				data: weekday_Evening,
+				backgroundColor: 'rgba(255,127,0, 0.8)',
+				borderColor: 'rgba(255,127,0, 1)',
+				borderWidth: 1,
+				order: 1
+			},
+			{
+				label: 'Weekday Night',
+				data: weekday_Night,
+				backgroundColor: 'rgba(152,78,163, 0.8)',
+				borderColor: 'rgba(152,78,163, 1)',
+				borderWidth: 1,
+				order: 1
+			}
+
+			]
+		},
+		options: {
+      responsive: true,
+      plugins: {
+        legend: {
+          position: 'top',
+        }
+      }
+    }
+	});
+
+
+  }
+
+
+
+
+  map.on('load', function() {
+    map.addSource('lsoa', {
+  	  'type': 'vector',
+  	  'url': 'pmtiles://lsoa.pmtiles',
+    });
+
+    switch_lsoa();
+
+  });
+
+  map.on('click', 'lsoa', function(e) {
+
+  make_chart(e.features[0].properties);
+  zone_modal.style.display = "block";
+
+
+});
+
+
+</script>
+
+
+</body>
+</html>
+
