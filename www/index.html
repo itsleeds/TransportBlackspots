@@ -117,7 +117,7 @@
 
 
   <p>
-    <label><input type="checkbox" id="comarecheckbox" value="false" onclick="switch_lsoa()">Compare years</label>
+    <label><input type="checkbox" id="comparecheckbox" value="false" onclick="switch_lsoa()">Compare years</label>
 
     <select id="select_year_alt" name="select_year_alt" onchange="switch_lsoa()">
       <option value="2004" >2004</option>
@@ -200,16 +200,6 @@
   switch_lsoa = function(){
 
     var checkBox = document.getElementById('comparecheckbox');
-    if (checkBox.checked === true){
-      var layerIDcomapre = "runs_" +
-      document.getElementById("select_day").value +
-      "_" +
-      document.getElementById("select_time").value +
-      "_" +
-      document.getElementById("select_year_alt").value +
-      "_" +
-      document.getElementById("select_mode").value;
-    }
 
     var layerID = "runs_" +
     document.getElementById("select_day").value +
@@ -220,8 +210,51 @@
     "_" +
     document.getElementById("select_mode").value;
 
+
     if (map.getLayer('lsoa')) map.removeLayer('lsoa');
-    map.addLayer({
+
+    if (checkBox.checked === true){
+      var layerIDcomapre = "runs_" +
+      document.getElementById("select_day").value +
+      "_" +
+      document.getElementById("select_time").value +
+      "_" +
+      document.getElementById("select_year_alt").value +
+      "_" +
+      document.getElementById("select_mode").value;
+      console.log(layerIDcomapre + " " + layerID);
+
+      map.addLayer({
+            'id': 'lsoa',
+            'type': 'fill',
+            'source': 'lsoa',
+            'source-layer': 'lsoa',
+            'paint': {
+              'fill-color': [
+                  'let',
+                  'density',
+                  ['/', ['get', layerID], ['get', layerIDcomapre]],
+                  [
+                    'interpolate',
+                      ['linear'],
+                      ['var', 'density'],
+                      0,['to-color', '#a50026'],
+                      0.5,['to-color', '#f46d43'],
+                      1,['to-color', '#e0f3f8'],
+                      1.5,['to-color', '#74add1'],
+                      2,['to-color', '#4575b4'],
+                      100,['to-color', '#313695']
+                  ]
+                ],
+              'fill-opacity': 0.7,
+              'fill-outline-color': 'rgba(0, 0, 0, 0.2)'
+            }
+          }, 'roads 0 Guided Busway Casing'
+          );
+
+    } else {
+
+      map.addLayer({
             'id': 'lsoa',
             'type': 'fill',
             'source': 'lsoa',
@@ -244,6 +277,13 @@
             }
           }, 'roads 0 Guided Busway Casing'
           );
+
+    }
+
+
+
+
+
 
   }
 
