@@ -1,6 +1,3 @@
-# clear environment
-rm(list = ls())
-
 # load packages
 load_packages <- function() {
   library(UK2GTFS)
@@ -13,10 +10,6 @@ load_packages <- function() {
   library(pracma)
   library(openxlsx)
 }
-load_packages()
-
-# load data
-lsoa_trips_2004_2022 <- readRDS("data/trips_per_lsoa_2004_2022.Rds")
 
 # check column names
 # names(lsoa_trips_2004_2022)
@@ -72,11 +65,11 @@ summarise_trips_by_geog <- function(trips_data,
 
   trips_2004_2022_status <- trips_2004_2022 %>%
     mutate(status = case_when(year == 2020 ~ "Pandemic",
-                              runs_zscore <= -1 ~ "Missing data", # more than one standard deviation below zscore
-                              runs_pct_max <= 0.25 ~ "Missing data", # below 25% of peak
-                              runs_pct_max <= 0.4 & runs_zscore <= -0.7 ~ "Missing data", # capture some anomalies
-                              year < 2008 & runs_pct_max < 0.6 ~ "Missing data",
-                              between(runs_pct_max, 0.25, 0.5) ~ "Possibly missing data",
+                              runs_zscore <= -1 ~ "Incomplete data", # more than one standard deviation below zscore
+                              runs_pct_max <= 0.25 ~ "Incomplete data", # below 25% of peak
+                              runs_pct_max <= 0.4 & runs_zscore <= -0.7 ~ "Incomplete data", # capture some anomalies
+                              year < 2008 & runs_pct_max < 0.6 ~ "Incomplete data",
+                              between(runs_pct_max, 0.25, 0.5) ~ "Possibly incomplete data",
                               TRUE ~ ""))
 
   # do not clean post pandemic data and assume is complete, if post_pandemic == "keep"
@@ -92,18 +85,18 @@ summarise_trips_by_geog <- function(trips_data,
 # remove missing and interpolate
 clean_interp <- function(trips_data,
                          geog_var,
-                         missing_type = "Missing data") {
+                         missing_type = "Incomplete data") {
 
 
 
   # set missing year data to NAs
-  if(missing_type == "Possibly missing data") {
+  if(missing_type == "Possibly incomplete data") {
     trips_data_cleaned <- trips_data %>%
-      mutate(runs_pct_max = ifelse(grepl("missing data", status, ignore.case = TRUE), NA, runs_pct_max)) %>%
+      mutate(runs_pct_max = ifelse(grepl("incomplete data", status, ignore.case = TRUE), NA, runs_pct_max)) %>%
       filter(!is.na({{ geog_var }}))
-  } else if(missing_type == "Missing data") {
+  } else if(missing_type == "Incomplete data") {
     trips_data_cleaned <- trips_data %>%
-      mutate(runs_pct_max = ifelse(status == "Missing data", NA, runs_pct_max)) %>%
+      mutate(runs_pct_max = ifelse(status == "Incomplete data", NA, runs_pct_max)) %>%
       filter(!is.na({{ geog_var }}))
   }
 
@@ -182,90 +175,45 @@ region_trips_analysis <- function(lsoa_trips_2004_2022) {
          height = 30,
          units = "cm")
 
-  return(trips_by_region_clean)
+  # make wide summary
+  trips_by_region_wide <- make_wide_data_check_table(trips_by_region_clean)
+
+  return(trips_by_region_wide)
 
 }
 
+# METROPOLITAN AREA ANALYSIS ----------------------------------------------
 
+metro_trips_analysis <- function(lsoa_trips_2004_2022) {
 
-# METROPOLITAN AREA -------------------------------------------------------
+  trips_by_metro_status <- summarise_trips_by_geog(trips_data = lsoa_trips_2004_2022,
+                                                   geog_field = metro_area_name,
+                                                   runs_field = runs_weekday_Morning_Peak,
+                                                   post_pandemic = "keep")
 
-lsoa_trips_2004_2022 <- join_metro_by_lup(lsoa_trips_2004_2022)
+  trips_by_metro_clean <- clean_interp(trips_by_metro_status,
+                                       geog_var = metro_area_name)
 
-trips_by_metro_status <- summarise_trips_by_geog(trips_data = lsoa_trips_2004_2022,
-                                                  geog_field = metro_area_name,
-                                                  runs_field = runs_weekday_Morning_Peak,
-                                                  post_pandemic = "keep")
+  metro_trips_by_year <- plot_geog_grid(trips_by_metro_clean,
+                                        geog_var = metro_area_name,
+                                        ncols = 3,
+                                        ylab_name = "Percent of max (Weekday am peak)")
 
-trips_by_metro_clean <- clean_interp(trips_by_metro_status,
-                                      geog_var = metro_area_name)
+  ggsave(filename = "plots/metropolitan-area-trips-by-year.png",
+         plot = metro_trips_by_year,
+         device = "png",
+         width = 25,
+         height = 30,
+         units = "cm")
 
-metro_trips_by_year <- plot_geog_grid(trips_by_metro_clean,
-                                       geog_var = metro_area_name,
-                                       ncols = 3,
-                                       ylab_name = "Percent of max (Weekday am peak)")
+  # make wide summary
+  trips_by_metro_wide <- make_wide_data_check_table(trips_by_metro_clean,
+                                                    geog_field = metro_area_name)
 
+  return(trips_by_metro_wide)
 
-lsoa_trips_metro_2004_2022 <- lsoa_trips_2004_2022 %>%
-  filter(!is.na(metro_area_name)) %>%
-  filter(metro_area_name %in% c("West of England", "Greater Manchester"))
+}
 
-lsoa_trips_metro_2004_2022 <- lsoa_trips_metro_2004_2022 %>%
-  mutate(year_band = case_when(between(year, 2006, 2007) ~ "2006-2007",
-                               between(year, 2021, 2022) ~ "2021-2022")) %>%
-  mutate(year_band = ifelse(is.na(year_band), year, year_band))
-
-#str(lsoa_trips_metro_2004_2022)
-trip_cols <- colnames(lsoa_trips_metro_2004_2022)[5:19]
-
-lsoa_trips_max <- lsoa_trips_metro_2004_2022 %>%
-  group_by(lsoa11 = zone_id) %>%
-  summarise(across(all_of(trip_cols), max, na.rm = TRUE, .names = "{.col}_max")) %>%
-  ungroup()
-
-lsoa_trips_trend <- lsoa_trips_metro_2004_2022 %>%
-  group_by(lsoa11 = zone_id,
-           year_band,
-           metro_area_name) %>%
-  summarise(across(all_of(trip_cols), mean, na.rm = TRUE)) %>%
-  ungroup()
-
-# check NA values for 2006/07
-# check the ratio of 2006/07 to max value (for weekday morning?)
-lsoa_trips_trend <- lsoa_trips_trend %>%
-  filter(year_band %in% c("2005",
-                          "2006-2007",
-                          "2008",
-                          "2021-2022")) %>%
-  select(lsoa11,
-         year_band,
-         runs_weekday_Morning_Peak) %>%
-  spread(key = year_band,
-         value = runs_weekday_Morning_Peak)
-
-# add max value
-lsoa_trips_max <- lsoa_trips_max %>%
-  select(lsoa11,
-         runs_weekday_Morning_Peak_max)
-
-# join and check
-lsoa_trips_trend <- lsoa_trips_trend %>%
-  mutate(change_2006_2022 = `2021-2022` - `2006-2007`)
-
-lsoa_boundaries <- st_read("../gis-data/boundaries/lsoa/LSOAs_Dec_2011_BFC_EW_V3/",
-                           quiet = TRUE)
-lsoa_boundaries <- lsoa_boundaries %>%
-  select(OBJECTID,
-         lsoa11 = LSOA11CD,
-         lsoa_name = LSOA11NM,
-         geometry)
-
-lsoa_trips_trend <- inner_join(lsoa_boundaries, lsoa_trips_trend, by = "lsoa11")
-
-tmap_mode("view")
-qtm(lsoa_trips_trend,
-    fill = "change_2006_2022",
-    borders = NULL)
 
 # LA analysis -------------------------------------------------------------
 
