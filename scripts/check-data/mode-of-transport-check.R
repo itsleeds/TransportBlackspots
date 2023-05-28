@@ -1,8 +1,63 @@
-rm(lsoa_trips_2004_2022)
+rm(list = ls())
+source("scripts/check-data/lsoa-trips-analysis-functions.R")
+load_packages()
 
 trips_mode_lsoa_2004_2023 <- readRDS("data/trips_per_lsoa_by_mode_2004_2023.Rds")
-table(trips_mode_lsoa_2004_2023$route_type)
-table(trips_mode_lsoa_2004_2023$RGN11NM, useNA = "ifany")
+#table(trips_mode_lsoa_2004_2023$route_type)
+#table(trips_mode_lsoa_2004_2023$RGN11NM, useNA = "ifany")
+
+bus_trips_lsoa_2004_2023 <- trips_mode_lsoa_2004_2023 %>%
+  filter(route_type == 3)
+
+la_bus_trips <- bus_trips_lsoa_2004_2023 %>%
+  filter(!is.na(LAD17NM)) %>%
+  group_by(LAD17NM,
+           year) %>%
+  summarise(runs = sum(runs_weekday_Morning_Peak, na.rm = TRUE)) %>%
+  group_by(LAD17NM) %>%
+  mutate(runs_pct_max = runs / max(runs),
+         runs_zscore = (runs - mean(runs)) / sd(runs)) %>%
+  ungroup()
+
+la_bus_trips <- la_bus_trips %>%
+  mutate(status = case_when(year == 2020 ~ "Pandemic",
+                            year < 2020 & runs_zscore <= -1 ~ "Incomplete data", # more than one standard deviation below zscore
+                            runs_pct_max <= 0.25 ~ "Incomplete data", # below 25% of peak
+                            runs_pct_max <= 0.4 & runs_zscore <= -0.7 ~ "Incomplete data", # capture some anomalies
+                            year < 2008 & runs_pct_max < 0.6 ~ "Incomplete data",
+                            #between(runs_pct_max, 0.25, 0.5) ~ "Possibly incomplete data",
+                            TRUE ~ ""))
+
+# remove data for years with incomplete data
+la_bus_trips <- la_bus_trips %>%
+  mutate(runs = ifelse(status == "Incomplete data", NA, runs))
+
+la_bus_trips <- la_bus_trips %>%
+  select(LAD17NM,
+         year,
+         runs) %>%
+  spread(key = year,
+         value = runs)
+
+la_bus_trips <- la_bus_trips %>%
+  mutate(change_n = `2022` - `2008`) %>%
+  mutate(change_pct = change_n / `2008`)
+
+la_boundaries <- st_read("../gis-data/boundaries/local-authority/Local_Authority_Districts_(December_2021)_UK_BFC/",
+                         quiet = TRUE)
+
+la_boundaries <- la_boundaries %>%
+  select(OBJECTID,
+         LAD21CD,
+         LAD21NM,
+         geometry)
+
+la_bus_trips <- left_join(la_boundaries, la_bus_trips, by = c("LAD21NM" = "LAD17NM"))
+
+tmap_mode("view")
+qtm(la_bus_trips,
+    fill = "change_pct",
+    border = NULL)
 
 # clean
 trips_mode_lsoa_2004_2023 <- trips_mode_lsoa_2004_2023 %>%
