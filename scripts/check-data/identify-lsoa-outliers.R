@@ -5,7 +5,7 @@ source("scripts/check-data/lsoa-trips-analysis-functions.R")
 
 load_packages()
 library(fpp2)
-library(zoo)
+#library(zoo)
 library(tsoutliers)
 
 get_lsoa_mode_runs <- function(mode_no = 3, run_period = runs_weekday_Morning_Peak) {
@@ -103,12 +103,14 @@ remove_lsoas_with_insufficient_datapoints <- function(trip_lsoa_data) {
 
 run_outlier_function <- function(trip_lsoa_data) {
 
+  tictoc::tic(msg = "Outliers identified")
+
   # make list of distinct lsoas with good data
   lsoa_list <- unique(trip_lsoa_data$lsoa11)
   # make cleaned data data set
   clean_ts_all <- data.frame()
 
-  for(r in 1:length(lsoa_list)) {
+  for(r in 1:100) {
 
     message(paste0("Running outlier analysis on ", lsoa_list[r]))
 
@@ -147,6 +149,8 @@ run_outlier_function <- function(trip_lsoa_data) {
   clean_ts_all <- clean_ts_all %>%
     mutate(year = as.integer(year))
 
+  tictoc::toc()
+
   return(clean_ts_all)
 
 }
@@ -158,14 +162,20 @@ finalise_trip_data <- function(trip_lsoa_data,
                                trip_lsoa_2020) {
 
   # combined original, cleaned and pandemic year data together
-  bustrips_final <- inner_join(trip_lsoa_data, trip_lsoa_data_cleaned, by = c("year", "lsoa11"))
-  bustrips_final <- bustrips_final %>%
+  trips_final <- inner_join(trip_lsoa_data, trip_lsoa_data_cleaned, by = c("year", "lsoa11"))
+  trips_final <- trips_final %>%
     filter(year != 2020)
-  bustrips_final <- bind_rows(bustrips_final, trip_lsoa_2020) %>%
+
+  # remove any lsoas with pandemic 2020 data but that have been omitted from the main data set during cleaning
+  trip_lsoa_2020 <- trip_lsoa_2020 %>%
+    filter(lsoa11 %in% unique(trips_final$lsoa11))
+
+  # add pandemic year data to main data frame
+  trips_final <- bind_rows(trips_final, trip_lsoa_2020) %>%
     arrange(lsoa11, year)
 
-  # identify outliers and interpolation results
-  bustrips_final <- bustrips_final %>%
+  # make note of which points have outliers and interpolated results
+  trips_final <- trips_final %>%
     mutate(runs = ifelse(year == 2020, runs_pandemic, runs)) %>%
     mutate(runs_cleaned = ifelse(year == 2020, runs_pandemic, runs_cleaned)) %>%
     mutate(outlier = runs != runs_cleaned) %>%
@@ -173,7 +183,7 @@ finalise_trip_data <- function(trip_lsoa_data,
     mutate(interpolation = is.na(runs) & !is.na(runs_cleaned))
 
   # select final set of data
-  bustrips_final <- bustrips_final %>%
+  trips_final <- trips_final %>%
     select(lsoa11,
            year,
            runs,
@@ -184,7 +194,8 @@ finalise_trip_data <- function(trip_lsoa_data,
 }
 
 
-bustrips_lsoa_2004_2023 <- get_lsoa_mode_runs()
+bustrips_lsoa_2004_2023 <- get_lsoa_mode_runs(mode_no = 3,
+                                              run_period = runs_weekday_Morning_Peak)
 bustrips_lsoa_2004_2023 <- add_missing_years(bustrips_lsoa_2004_2023)
 bustrips_lsoa_2020 <- extract_pandemic_year(bustrips_lsoa_2004_2023)
 bustrips_lsoa_2004_2023 <- clean_data_for_outlier_analysis(bustrips_lsoa_2004_2023)
@@ -195,8 +206,80 @@ bustrips_lsoa_2004_2023_cleaned <- run_outlier_function(bustrips_lsoa_2004_2023)
 bustrips_lsoa_2004_2023_final <- finalise_trip_data(bustrips_lsoa_2004_2023,
                                                     bustrips_lsoa_2004_2023_cleaned,
                                                     bustrips_lsoa_2020)
+# look to analyse trends over time
 
-# check why there are 9 extra record in final data set
+Find max value in period 2006-2008
+Use value in 2019, unless is null then use 2018
+Use value in 2023
+
+bustrips_lsoa_2004_2023_trends <- bustrips_lsoa_2004_2023_final %>%
+  filter(year %in% c(2006, 2007, 2008, 2019, 2023)) %>%
+  mutate(year_band = case_when(year %in% c(2006, 2007, 2008) ~ "2006-2008",
+                               year == 2017 ~ "2017",
+                               year == 2018 ~ "2018",
+                               year == 2019 ~ "2019",
+                               year == 2023 ~ "2023"))
+
+bustrips_lsoa_2004_2023_trends <- bustrips_lsoa_2004_2023_trends %>%
+  group_by(lsoa11,
+           year_band) %>%
+  summarise(runs_max = max(runs_cleaned, na.rm = TRUE)) %>%
+  ungroup() %>%
+  spread(key = year_band,
+         value = runs_max)
+
+bustrips_lsoa_2004_2023_trends <- bustrips_lsoa_2004_2023_trends %>%
+  mutate(trips_change_2008_2019 = `2019` - `2006-2008`,
+         trips_change_2008_2023 = `2023` - `2006-2008`,
+         trips_change_2019_2023 = `2023` - `2019`) %>%
+  mutate(trips_change_2008_2019_pct = runs_change_2008_2019 / `2006-2008`,
+         trips_change_2008_2023_pct = runs_change_2008_2023 / `2006-2008`,
+         trips_change_2019_2023_pct = runs_change_2019_2023 / `2019`)
+
+bustrips_lsoa_2004_2023_trends <- bustrips_lsoa_2004_2023_trends %>%
+  select(lsoa11,
+         trips_2006_08 = `2006-2008`,
+         trips_2019 = `2019`,
+         trips_2023 = `2023`,
+         trips_change_2008_2019,
+         trips_change_2008_2019_pct,
+         trips_change_2008_2023,
+         trips_change_2008_2023_pct,
+         trips_change_2019_2023,
+         trips_change_2019_2023_pct)
+
+bustrips_lsoa_wkpm_2004_2023 <- get_lsoa_mode_runs(mode_no = 3,
+                                              run_period = runs_weekday_Afternoon_Peak)
+bustrips_lsoa_wkpm_2004_2023 <- add_missing_years(bustrips_lsoa_wkpm_2004_2023)
+bustrips_lsoa_wkpm_2020 <- extract_pandemic_year(bustrips_lsoa_wkpm_2004_2023)
+bustrips_lsoa_wkpm_2004_2023 <- clean_data_for_outlier_analysis(bustrips_lsoa_wkpm_2004_2023)
+bustrips_lsoa_wkpm_2004_2023 <- remove_lsoas_with_insufficient_datapoints(bustrips_lsoa_wkpm_2004_2023)
+
+bustrips_lsoa_wkpm_2004_2023_cleaned <- run_outlier_function(bustrips_lsoa_wkpm_2004_2023)
+
+bustrips_lsoa_wkpm_2004_2023_final <- finalise_trip_data(bustrips_lsoa_wkpm_2004_2023,
+                                                         bustrips_lsoa_wkpm_2004_2023_cleaned,
+                                                         bustrips_lsoa_wkpm_2020)
+
+
+
+runs_weekday_Night
+runs_weekday_Morning_Peak
+runs_weekday_Afternoon_Peak
+runs_weekday_Midday
+runs_weekday_Evening
+runs_Sat_Night
+runs_Sat_Morning_Peak
+runs_Sat_Midday
+runs_Sat_Afternoon_Peak
+runs_Sat_Evening
+runs_Sun_Night
+runs_Sun_Morning_Peak
+runs_Sun_Midday
+runs_Sun_Afternoon_Peak
+runs_Sun_Evening
+
+#  OLD TESTS AND WORKINGS -------------------------------------------------
 
 
 lsoa_list <- unique(bustrips_lsoa_2004_2023$lsoa11)
@@ -223,7 +306,6 @@ p <- autoplot(tsclean(raw_ts), series="clean", color='red', lwd=0.9) +
              aes(x=year, y=replacements), col='blue') +
   labs(x = "year", y = "runs")
 plot(p)
-
 
 
 test <- bustrips_weekam_lsoa_2004_2023 %>%
