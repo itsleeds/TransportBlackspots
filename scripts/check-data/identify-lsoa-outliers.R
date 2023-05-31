@@ -8,6 +8,10 @@ library(fpp2)
 #library(zoo)
 library(tsoutliers)
 
+
+#  functions to clean, process and find trends for trips in each l --------
+
+# get data and filter for mode of transport and select a given time of day/week
 get_lsoa_mode_runs <- function(mode_no = 3, trips_col = "runs_weekday_Morning_Peak") {
 
   # get full lsoa data set
@@ -31,6 +35,8 @@ get_lsoa_mode_runs <- function(mode_no = 3, trips_col = "runs_weekday_Morning_Pe
 }
 
 # add missing years to time series
+# (we will run a time-based outlier detection process so need a point in the time
+#  series for each year, even if these are NAs - interpolation will estimate these values)
 add_missing_years <- function(trip_lsoa_data) {
 
   # generate missing year data to have a complete time series
@@ -45,6 +51,9 @@ add_missing_years <- function(trip_lsoa_data) {
 
 }
 
+# select out the data for the pandemic year
+# if not this will be treated as an outlier, so we need to save these true values
+# and add back in after outlier detection.
 extract_pandemic_year <- function(trip_lsoa_data) {
 
   pandemic_year_data <- trip_lsoa_data %>%
@@ -55,19 +64,28 @@ extract_pandemic_year <- function(trip_lsoa_data) {
 
 }
 
+# clean the data.
+# some clearly incomplete data is not treated as an outlier, even though they clearly are.
+# this is most noticeable for the early yearsp (pre-2008). So using z-score and some manual
+# cleaning logic, we will set some of these values to NAs. the tsoutlier function will then
+# interpolate these values.
 clean_data_for_outlier_analysis <- function(trip_lsoa_data) {
 
-  # remove pandemic year and arange by lsoa and year
+  # remove pandemic year and arrange by lsoa and year
   trip_lsoa_data <- trip_lsoa_data %>%
     mutate(runs = ifelse(year == 2020, NA, runs)) %>%
     arrange(lsoa11,
             year)
 
-  # remove 2004 as so much data missing
+  # remove 2004 as so much data missing that it is not useful time point
   trip_lsoa_data <- trip_lsoa_data %>%
     filter(year != 2004)
 
   # remove really low values before 2020 as these are not removed by tsoutliers automatically
+  # this is done for all value with a zscore of less that 1, before 2020.
+  # the logic being that the data after 2020 should be complete in the GTFS files we have, but
+  # that services in some areas could have been reduced so that their zscore is less than 1 but this
+  # is a legitimate value.
   trip_lsoa_data <- trip_lsoa_data %>%
     group_by(lsoa11) %>%
     mutate(runs_max_pct = runs / max(runs, na.rm = TRUE),
@@ -78,9 +96,13 @@ clean_data_for_outlier_analysis <- function(trip_lsoa_data) {
                          ifelse(year < 2020 & runs_zscore < -1, NA, runs)))
 }
 
+# some LSOAs will not have sufficient data points in order to detect outliers or even to be used for
+# an overall time series and trend.
+# tsoutliers is unhappy when there is only 1 data point. It also seems unreliable to keep LSOAs that
+# have less than 4 data points between 2005-2023, so these are removed from the analysis.
 remove_lsoas_with_insufficient_datapoints <- function(trip_lsoa_data) {
 
-  # remove lsoas where there is only 1 or two data points in the series
+  # find lsoas where there is only 3 or less data points in the series
   lsoa_with_insufficient_datapoints <- trip_lsoa_data %>%
     filter(!is.na(runs)) %>%
     group_by(lsoa11) %>%
@@ -88,6 +110,7 @@ remove_lsoas_with_insufficient_datapoints <- function(trip_lsoa_data) {
     ungroup() %>%
     filter(n <= 3)
 
+  # find LSOAs which have all NA values
   lsoas_with_all_null_datapoints <- trip_lsoa_data %>%
     mutate(runs_na = ifelse(is.na(runs), 1, 0)) %>%
     group_by(lsoa11) %>%
@@ -97,27 +120,34 @@ remove_lsoas_with_insufficient_datapoints <- function(trip_lsoa_data) {
     mutate(na_pct = nas / n) %>%
     filter(na_pct == 1)
 
+  # remove these lsoas: a) with 3 or less data points or will all NA values.
   trip_lsoa_data <- trip_lsoa_data %>%
     filter(!lsoa11 %in% lsoa_with_insufficient_datapoints$lsoa11) %>%
     filter(!lsoa11 %in% lsoas_with_all_null_datapoints$lsoa11)
 
 }
 
-
+# this function takes each lsoa in term and converts the years and runs into a
+# time series which it then detects outliers and interpolates for NA values.
+# this is then converted back into a data frame and appended onto the previous
+# lsoa results, until all LSOAs in the time series have been processed
 run_outlier_function <- function(trip_lsoa_data) {
 
+  # set timer using tictoc function
   tictoc::tic(msg = "Outliers identified")
 
-  # make list of distinct lsoas with good data
+  # make list of distinct lsoas with good data (having been cleaned as above)
   lsoa_list <- unique(trip_lsoa_data$lsoa11)
-  # make cleaned data data set
+  # make new empty data data set which will be populated by the loop below
   clean_ts_all <- data.frame()
 
+  # run a loop on the data for each lsoa, using the tsoutliers function
   for(r in 1:length(lsoa_list)) {
 
+    # print progress (which helps identifying location of data errors given by tsoutliers)
     message(paste0("Running outlier analysis on ", lsoa_list[r]))
 
-    # select raw data
+    # select 'raw' runs data
     raw <- trip_lsoa_data %>%
       filter(lsoa11 == lsoa_list[r]) %>%
       select(year,
@@ -127,39 +157,33 @@ run_outlier_function <- function(trip_lsoa_data) {
     raw_ts <- ts(raw$runs,
                  start = 2005)
 
-    #outliers <- data.frame(tsoutliers(raw_ts))
-    #outliers <- outliers %>%
-    #  mutate(year = 2004 + index)
-
-    #p <- autoplot(tsclean(raw_ts), series="clean", color='red', lwd=0.9) +
-    #  autolayer(raw_ts, series="original", color='gray', lwd=1) +
-    #  geom_point(data = outliers,
-    #             aes(x=year, y=replacements), col='blue') +
-    #  labs(x = "year", y = "runs")
-    #plot(p)
-
-    # identify outliers and turn into a new data base
+    # identify outliers and turn into a new data frame
+    # .preformat.ts turns the time series into a matrix, which is then turned into a data frame,
+    # using the rownames (which is the calendar values from .preformat.ts) as a column field.
     new_clean_ts <- rownames_to_column(data.frame(lsoa11 = lsoa_list[r],
                                                   runs_cleaned = .preformat.ts(tsclean(raw_ts),
                                                                                calendar = TRUE)),
                                        "year")
 
+    # append this to the previous results... and repeat till complete!
     clean_ts_all <- bind_rows(clean_ts_all,
                               new_clean_ts)
 
   }
 
+  # convert year into an integer value
   clean_ts_all <- clean_ts_all %>%
     mutate(year = as.integer(year))
 
+  # stop timer
   tictoc::toc()
 
+  # return finished data set
   return(clean_ts_all)
 
 }
 
-
-
+# function to combine all the data (original, 2020 values and cleaned/outliers removed)
 finalise_trip_data <- function(trip_lsoa_data,
                                trip_lsoa_data_cleaned,
                                trip_lsoa_2020) {
@@ -196,65 +220,56 @@ finalise_trip_data <- function(trip_lsoa_data,
 
 }
 
-#
-#
-# bustrips_lsoa_2004_2023 <- get_lsoa_mode_runs(mode_no = 3,
-#                                               trips_col = "runs_weekday_Morning_Peak")
-# bustrips_lsoa_2004_2023 <- add_missing_years(bustrips_lsoa_2004_2023)
-# bustrips_lsoa_2020 <- extract_pandemic_year(bustrips_lsoa_2004_2023)
-# bustrips_lsoa_2004_2023 <- clean_data_for_outlier_analysis(bustrips_lsoa_2004_2023)
-# bustrips_lsoa_2004_2023 <- remove_lsoas_with_insufficient_datapoints(bustrips_lsoa_2004_2023)
-#
-# bustrips_lsoa_2004_2023_cleaned <- run_outlier_function(bustrips_lsoa_2004_2023)
-#
-# bustrips_lsoa_2004_2023_final <- finalise_trip_data(bustrips_lsoa_2004_2023,
-#                                                     bustrips_lsoa_2004_2023_cleaned,
-#                                                     bustrips_lsoa_2020)
-# # look to analyse trends over time
-# assess_trip_trends <- function(trips_final) {
-#
-#   #Find max value in period 2006-2008
-#   #Use value in 2019
-#   #Use value in 2023
-#
-#   trips_trends <- trips_final %>%
-#     filter(year %in% c(2006, 2007, 2008, 2019, 2023)) %>%
-#     mutate(year_band = case_when(year %in% c(2006, 2007, 2008) ~ "2006-2008",
-#                                  year == 2019 ~ "2019",
-#                                  year == 2023 ~ "2023"))
-#
-#   # summarise runs_cleaned - so all points will have a value whether original, interpolated or outlier removed.
-#   trips_trends <- trips_trends %>%
-#     group_by(lsoa11,
-#              year_band) %>%
-#     summarise(runs_max = max(runs_cleaned, na.rm = TRUE)) %>%
-#     ungroup() %>%
-#     spread(key = year_band,
-#            value = runs_max)
-#
-#   # calculate the trends between years.
-#   trips_trends <- trips_trends %>%
-#     mutate(trips_change_2008_2019 = `2019` - `2006-2008`,
-#            trips_change_2008_2023 = `2023` - `2006-2008`,
-#            trips_change_2019_2023 = `2023` - `2019`) %>%
-#     mutate(trips_change_2008_2019_pct = trips_change_2008_2019 / `2006-2008`,
-#            trips_change_2008_2023_pct = trips_change_2008_2023 / `2006-2008`,
-#            trips_change_2019_2023_pct = trips_change_2019_2023 / `2019`)
-#
-#   # finalise the data set
-#   trips_trends <- trips_trends %>%
-#     select(lsoa11,
-#            trips_2006_08 = `2006-2008`,
-#            trips_2019 = `2019`,
-#            trips_2023 = `2023`,
-#            trips_change_2008_2019,
-#            trips_change_2008_2019_pct,
-#            trips_change_2008_2023,
-#            trips_change_2008_2023_pct,
-#            trips_change_2019_2023,
-#            trips_change_2019_2023_pct)
 
+# analyse trends over time for selected point in the time series.
+# in this instance, we've used 2006-2008 (and found the maximum value within this time frame),
+# plus a prepandemic point (2019) and the latest available data (2023)
+assess_trip_trends <- function(trips_final) {
 
+  #Find max value in period 2006-2008
+  #Use value in 2019
+  #Use value in 2023
+
+  trips_trends <- trips_final %>%
+    filter(year %in% c(2006, 2007, 2008, 2019, 2023)) %>%
+    mutate(year_band = case_when(year %in% c(2006, 2007, 2008) ~ "2006-2008",
+                                 year == 2019 ~ "2019",
+                                 year == 2023 ~ "2023"))
+
+  # summarise runs_cleaned - so all points will have a value whether original, interpolated or outlier removed.
+  trips_trends <- trips_trends %>%
+    group_by(lsoa11,
+             year_band) %>%
+    summarise(runs_max = max(runs_cleaned, na.rm = TRUE)) %>%
+    ungroup() %>%
+    spread(key = year_band,
+           value = runs_max)
+
+  # calculate the trends between years.
+  trips_trends <- trips_trends %>%
+    mutate(trips_change_2008_2019 = `2019` - `2006-2008`,
+           trips_change_2008_2023 = `2023` - `2006-2008`,
+           trips_change_2019_2023 = `2023` - `2019`) %>%
+    mutate(trips_change_2008_2019_pct = trips_change_2008_2019 / `2006-2008`,
+           trips_change_2008_2023_pct = trips_change_2008_2023 / `2006-2008`,
+           trips_change_2019_2023_pct = trips_change_2019_2023 / `2019`)
+
+  # finalise the data set
+  trips_trends <- trips_trends %>%
+    select(lsoa11,
+           trips_2006_08 = `2006-2008`,
+           trips_2019 = `2019`,
+           trips_2023 = `2023`,
+           trips_change_2008_2019,
+           trips_change_2008_2019_pct,
+           trips_change_2008_2023,
+           trips_change_2008_2023_pct,
+           trips_change_2019_2023,
+           trips_change_2019_2023_pct)
+
+}
+
+# MAIN FUNCTION TO COMBINE ALL OTHER PROCESS FUNCTIONS ABOVE
 find_lsoa_trip_trends <- function(period) {
 
   trips_lsoa_2004_2023 <- get_lsoa_mode_runs(mode_no = 3,
@@ -276,8 +291,6 @@ find_lsoa_trip_trends <- function(period) {
     mutate(period_name = period)
 
 }
-
-period <- c("runs_weekday_Night")
 
 periods <- c("runs_weekday_Night",
              "runs_weekday_Morning_Peak",
@@ -306,48 +319,66 @@ for(p in periods) {
 
 }
 
+saveRDS(object = all_trend_data,
+        file = "data/lsoa_bustrip_trends_2008_2023.rds")
 
 #  OLD TESTS AND WORKINGS -------------------------------------------------
 
-
-lsoa_list <- unique(bustrips_lsoa_2004_2023$lsoa11)
-raw <- bustrips_lsoa_2004_2023 %>%
-  filter(lsoa11 == lsoa_list[5000]) %>%
-  select(year,
-         runs)
-
-# turn into a ts object
-raw_ts <- ts(raw$runs,
-             start = 2005,
-             end = 2023)
-
-.preformat.ts(raw_ts,
-              calendar = TRUE)
-
-outliers <- data.frame(tsoutliers(raw_ts))
-outliers <- outliers %>%
-  mutate(year = 2004 + index)
-
-p <- autoplot(tsclean(raw_ts), series="clean", color='red', lwd=0.9) +
-  autolayer(raw_ts, series="original", color='gray', lwd=1) +
-  geom_point(data = outliers,
-             aes(x=year, y=replacements), col='blue') +
-  labs(x = "year", y = "runs")
-plot(p)
+#
+#
+# bustrips_lsoa_2004_2023 <- get_lsoa_mode_runs(mode_no = 3,
+#                                               trips_col = "runs_weekday_Morning_Peak")
+# bustrips_lsoa_2004_2023 <- add_missing_years(bustrips_lsoa_2004_2023)
+# bustrips_lsoa_2020 <- extract_pandemic_year(bustrips_lsoa_2004_2023)
+# bustrips_lsoa_2004_2023 <- clean_data_for_outlier_analysis(bustrips_lsoa_2004_2023)
+# bustrips_lsoa_2004_2023 <- remove_lsoas_with_insufficient_datapoints(bustrips_lsoa_2004_2023)
+#
+# bustrips_lsoa_2004_2023_cleaned <- run_outlier_function(bustrips_lsoa_2004_2023)
+#
+# bustrips_lsoa_2004_2023_final <- finalise_trip_data(bustrips_lsoa_2004_2023,
+#                                                     bustrips_lsoa_2004_2023_cleaned,
+#                                                     bustrips_lsoa_2020)
 
 
-test <- bustrips_weekam_lsoa_2004_2023 %>%
-  filter(lsoa11 == "E01003805")
 
-qplot(x = test$year,
-      y = test$runs,
-      geom = "line")
-
-cor(test$year,
-    test$runs,
-    use = "complete.obs")
-
-model <- lm(runs ~ year, data = test)
-summary(model)
-plot(test$year, test$runs)
-abline(a = coef(model)[1], b = coef(model)[2])
+# lsoa_list <- unique(bustrips_lsoa_2004_2023$lsoa11)
+# raw <- bustrips_lsoa_2004_2023 %>%
+#   filter(lsoa11 == lsoa_list[5000]) %>%
+#   select(year,
+#          runs)
+#
+# # turn into a ts object
+# raw_ts <- ts(raw$runs,
+#              start = 2005,
+#              end = 2023)
+#
+# .preformat.ts(raw_ts,
+#               calendar = TRUE)
+#
+# outliers <- data.frame(tsoutliers(raw_ts))
+# outliers <- outliers %>%
+#   mutate(year = 2004 + index)
+#
+# p <- autoplot(tsclean(raw_ts), series="clean", color='red', lwd=0.9) +
+#   autolayer(raw_ts, series="original", color='gray', lwd=1) +
+#   geom_point(data = outliers,
+#              aes(x=year, y=replacements), col='blue') +
+#   labs(x = "year", y = "runs")
+# plot(p)
+#
+#
+# test <- bustrips_weekam_lsoa_2004_2023 %>%
+#   filter(lsoa11 == "E01003805")
+#
+# qplot(x = test$year,
+#       y = test$runs,
+#       geom = "line")
+#
+# cor(test$year,
+#     test$runs,
+#     use = "complete.obs")
+#
+# model <- lm(runs ~ year, data = test)
+# summary(model)
+# plot(test$year, test$runs)
+# abline(a = coef(model)[1], b = coef(model)[2])
