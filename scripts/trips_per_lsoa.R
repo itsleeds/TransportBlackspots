@@ -2,12 +2,19 @@ library(UK2GTFS)
 library(sf)
 sf_use_s2(FALSE)
 
+lamode = FALSE
+
 source("R/stops_per_week_functions.R")
-zone = readRDS("data/GB_LSOA_2011_full_or_500mBuff.Rds")
+if(lamode){
+  zone = readRDS("data/LA_bounds_2023.Rds")
+} else {
+  zone = readRDS("data/GB_LSOA_2011_full_or_500mBuff.Rds")
+}
 zone = st_transform(zone, 4326)
-path = "D:/OneDrive - University of Leeds/Data/UK2GTFS/"
+path = "C:/Users/malco/OneDrive - University of Leeds/Data/UK2GTFS"
+#path = "D:/OneDrive - University of Leeds/Data/UK2GTFS/"
 #for(i in c(2004:2011,2014:2023)){
-for(i in c(2018:2023)){
+for(i in c(2004:2011,2019:2023)){
   message(i)
   if(i < 2012){
     gtfs <- gtfs_read(file.path(path,paste0("NPTDR/GTFS/NPTDR_",i,".zip")))
@@ -89,7 +96,7 @@ for(i in c(2018:2023)){
     gtfs = gtfs_clean(gtfs)
     gtfs <- gtfs_trips_per_zone(gtfs, zone = zone,
                                 startdate = lubridate::ymd(paste(i,"-07-01")),
-                                enddate = lubridate::ymd(paste(i,"-07-07")))
+                                enddate = lubridate::ymd(paste(i,"-07-31")))
     gtfs_rail <- gtfs_read(file.path(path,paste0("ATOC/GTFS/",i,"-11-26.zip")))
     gtfs_rail$stops <- gtfs_rail$stops[!is.na(gtfs_rail$stops$stop_lon),]
     gtfs_rail = gtfs_clean(gtfs_rail)
@@ -155,6 +162,12 @@ for(i in c(2018:2023)){
     stop()
   }
 
-  saveRDS(gtfs,paste0("data/trips_per_lsoa_by_mode_",i,".Rds"))
+  if(lamode){
+    saveRDS(gtfs,paste0("data/trips_per_la_by_mode_",i,".Rds"))
+  } else {
+    saveRDS(gtfs,paste0("data/trips_per_lsoa_by_mode_",i,".Rds"))
+  }
+
   rm(gtfs)
+  gc()
 }
