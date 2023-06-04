@@ -2,7 +2,7 @@ library(UK2GTFS)
 library(sf)
 sf_use_s2(FALSE)
 
-lamode = FALSE
+lamode = TRUE
 
 source("R/stops_per_week_functions.R")
 if(lamode){
@@ -11,10 +11,10 @@ if(lamode){
   zone = readRDS("data/GB_LSOA_2011_full_or_500mBuff.Rds")
 }
 zone = st_transform(zone, 4326)
-path = "C:/Users/malco/OneDrive - University of Leeds/Data/UK2GTFS"
-#path = "D:/OneDrive - University of Leeds/Data/UK2GTFS/"
-#for(i in c(2004:2011,2014:2023)){
-for(i in c(2008:2011,2019:2023)){
+#path = "C:/Users/malco/OneDrive - University of Leeds/Data/UK2GTFS"
+path = "D:/OneDrive - University of Leeds/Data/UK2GTFS/"
+for(i in c(2004:2011,2014:2023)){
+#for(i in c(2008:2011,2019:2023)){
   message(i)
   if(i < 2012){
     gtfs <- gtfs_read(file.path(path,paste0("NPTDR/GTFS/NPTDR_",i,".zip")))
