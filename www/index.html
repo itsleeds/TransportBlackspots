@@ -61,6 +61,29 @@
       clear: both;
     }
 
+    .legend {
+      width: 300px;
+      text-align: center;
+      display: table;
+      table-layout: fixed;
+      font-size: 10px;
+    }
+
+    .l_r{
+      display: table-row;
+    }
+
+    .lb{
+      display: table-cell;
+    }
+
+    .legend div span {
+      display: inline-block;
+      height: 15px;
+      width: 100%;
+      border: 1px solid black;
+    }
+
   </style>
 
 </head>
@@ -108,10 +131,10 @@
   </select>
 
   <select id="select_mode" name="select_mode" onchange="switch_lsoa()">
-      <option value="0" selected>Tram/Light Rail</option>
+      <option value="0" >Tram/Light Rail</option>
       <option value="1" >Metro</option>
       <option value="2" >Rail</option>
-      <option value="3" >Bus</option>
+      <option value="3" selected>Bus</option>
       <option value="4" >Ferry</option>
   </select>
 
@@ -142,6 +165,26 @@
 
   </p>
 
+  <p>
+    <div class="legend">
+      <div class="l_r">
+        <div class="lb"><span style="background-color: #a50026"></span>0</div>
+        <div class="lb"><span style="background-color: #d73027"></span>0.1</div>
+        <div class="lb"><span style="background-color: #f46d43"></span>0.5</div>
+        <div class="lb"><span style="background-color: #fdae61"></span>10</div>
+        <div class="lb"><span style="background-color: #fee090"></span>20</div>
+        <div class="lb"><span style="background-color: #e0f3f8"></span>50</div>
+        <div class="lb"><span style="background-color: #abd9e9"></span>100</div>
+        <div class="lb"><span style="background-color: #74add1"></span>200</div>
+        <div class="lb"><span style="background-color: #4575b4"></span>500</div>
+        <div class="lb"><span style="background-color: #313695"></span>7500</div>
+    </div>
+
+    </div>
+
+
+  </p>
+
 </div>
 
 <div id="modal" class="modal">
@@ -152,7 +195,8 @@
 
 <div class="modal-body">
 
-  <p>Chart of Bus Travel</p>
+
+  <p>Chart of selected mode Travel</p>
   <div style="min-height:300px">
       <div class="chart-container" style="height:400px">
     			<canvas id="lsoa_chart"></canvas>
@@ -202,7 +246,7 @@
 
     var checkBox = document.getElementById('comparecheckbox');
 
-    var layerID = "runs_" +
+    var layerID = "tph_" +
     document.getElementById("select_day").value +
     "_" +
     document.getElementById("select_time").value +
@@ -215,7 +259,7 @@
     if (map.getLayer('lsoa')) map.removeLayer('lsoa');
 
     if (checkBox.checked === true){
-      var layerIDcomapre = "runs_" +
+      var layerIDcomapre = "tph_" +
       document.getElementById("select_day").value +
       "_" +
       document.getElementById("select_time").value +
@@ -263,15 +307,15 @@
             'paint': {
               'fill-color': ["step", ["get", layerID ],
                 "#a50026", 0,
-                "#d73027", 50,
-                "#f46d43", 100,
-                "#fdae61", 200,
-                "#fee090", 500,
-                "#e0f3f8", 1000,
-                "#abd9e9", 2000,
-                "#74add1", 4000,
-                "#4575b4", 5000,
-                "#313695", 1000000,
+                "#d73027", 0.1,
+                "#f46d43", 0.5,
+                "#fdae61", 10,
+                "#fee090", 20,
+                "#e0f3f8", 50,
+                "#abd9e9", 100,
+                "#74add1", 200,
+                "#4575b4", 500,
+                "#313695", 7500,
                 "#000000"],
               'fill-opacity': 0.7,
               'fill-outline-color': 'rgba(0, 0, 0, 0.2)'
@@ -294,119 +338,121 @@
 		  lsoa_chart.destroy();
 	  }
 
+	  md = document.getElementById("select_mode").value;
+
 	  var weekday_Morning_Peak = [
-    sub.runs_weekday_Morning_Peak_2004_3,
-    sub.runs_weekday_Morning_Peak_2005_3,
-    sub.runs_weekday_Morning_Peak_2006_3,
-    sub.runs_weekday_Morning_Peak_2007_3,
-    sub.runs_weekday_Morning_Peak_2008_3,
-    sub.runs_weekday_Morning_Peak_2009_3,
-    sub.runs_weekday_Morning_Peak_2010_3,
-    sub.runs_weekday_Morning_Peak_2011_3,
+    sub['tph_weekday_Morning_Peak_2004_' + md],
+    sub['tph_weekday_Morning_Peak_2005_' + md],
+    sub['tph_weekday_Morning_Peak_2006_' + md],
+    sub['tph_weekday_Morning_Peak_2007_' + md],
+    sub['tph_weekday_Morning_Peak_2008_' + md],
+    sub['tph_weekday_Morning_Peak_2009_' + md],
+    sub['tph_weekday_Morning_Peak_2010_' + md],
+    sub['tph_weekday_Morning_Peak_2011_' + md],
     null,
     null,
-    sub.runs_weekday_Morning_Peak_2014_3,
-    sub.runs_weekday_Morning_Peak_2015_3,
-    sub.runs_weekday_Morning_Peak_2016_3,
-    sub.runs_weekday_Morning_Peak_2017_3,
-    sub.runs_weekday_Morning_Peak_2018_3,
-    sub.runs_weekday_Morning_Peak_2019_3,
-    sub.runs_weekday_Morning_Peak_2020_3,
-    sub.runs_weekday_Morning_Peak_2021_3,
-    sub.runs_weekday_Morning_Peak_2022_3,
-    sub.runs_weekday_Morning_Peak_2023_3,
+    sub['tph_weekday_Morning_Peak_2014_' + md],
+    sub['tph_weekday_Morning_Peak_2015_' + md],
+    sub['tph_weekday_Morning_Peak_2016_' + md],
+    sub['tph_weekday_Morning_Peak_2017_' + md],
+    sub['tph_weekday_Morning_Peak_2018_' + md],
+    sub['tph_weekday_Morning_Peak_2019_' + md],
+    sub['tph_weekday_Morning_Peak_2020_' + md],
+    sub['tph_weekday_Morning_Peak_2021_' + md],
+    sub['tph_weekday_Morning_Peak_2022_' + md],
+    sub['tph_weekday_Morning_Peak_2023_' + md],
     ];
 
     var weekday_Midday = [
-    sub.runs_weekday_Midday_2004_3,
-    sub.runs_weekday_Midday_2005_3,
-    sub.runs_weekday_Midday_2006_3,
-    sub.runs_weekday_Midday_2007_3,
-    sub.runs_weekday_Midday_2008_3,
-    sub.runs_weekday_Midday_2009_3,
-    sub.runs_weekday_Midday_2010_3,
-    sub.runs_weekday_Midday_2011_3,
+    sub['tph_weekday_Midday_2004_' + md],
+    sub['tph_weekday_Midday_2005_' + md],
+    sub['tph_weekday_Midday_2006_' + md],
+    sub['tph_weekday_Midday_2007_' + md],
+    sub['tph_weekday_Midday_2008_' + md],
+    sub['tph_weekday_Midday_2009_' + md],
+    sub['tph_weekday_Midday_2010_' + md],
+    sub['tph_weekday_Midday_2011_' + md],
     null,
     null,
-    sub.runs_weekday_Midday_2014_3,
-    sub.runs_weekday_Midday_2015_3,
-    sub.runs_weekday_Midday_2016_3,
-    sub.runs_weekday_Midday_2017_3,
-    sub.runs_weekday_Midday_2018_3,
-    sub.runs_weekday_Midday_2019_3,
-    sub.runs_weekday_Midday_2020_3,
-    sub.runs_weekday_Midday_2021_3,
-    sub.runs_weekday_Midday_2022_3,
-    sub.runs_weekday_Midday_2023_3,
+    sub['tph_weekday_Midday_2014_' + md],
+    sub['tph_weekday_Midday_2015_' + md],
+    sub['tph_weekday_Midday_2016_' + md],
+    sub['tph_weekday_Midday_2017_' + md],
+    sub['tph_weekday_Midday_2018_' + md],
+    sub['tph_weekday_Midday_2019_' + md],
+    sub['tph_weekday_Midday_2020_' + md],
+    sub['tph_weekday_Midday_2021_' + md],
+    sub['tph_weekday_Midday_2022_' + md],
+    sub['tph_weekday_Midday_2023_' + md],
     ];
 
     var weekday_Afternoon_Peak = [
-    sub.runs_weekday_Afternoon_Peak_2004_3,
-    sub.runs_weekday_Afternoon_Peak_2005_3,
-    sub.runs_weekday_Afternoon_Peak_2006_3,
-    sub.runs_weekday_Afternoon_Peak_2007_3,
-    sub.runs_weekday_Afternoon_Peak_2008_3,
-    sub.runs_weekday_Afternoon_Peak_2009_3,
-    sub.runs_weekday_Afternoon_Peak_2010_3,
-    sub.runs_weekday_Afternoon_Peak_2011_3,
+    sub['tph_weekday_Afternoon_Peak_2004_' + md],
+    sub['tph_weekday_Afternoon_Peak_2005_' + md],
+    sub['tph_weekday_Afternoon_Peak_2006_' + md],
+    sub['tph_weekday_Afternoon_Peak_2007_' + md],
+    sub['tph_weekday_Afternoon_Peak_2008_' + md],
+    sub['tph_weekday_Afternoon_Peak_2009_' + md],
+    sub['tph_weekday_Afternoon_Peak_2010_' + md],
+    sub['tph_weekday_Afternoon_Peak_2011_' + md],
     null,
     null,
-    sub.runs_weekday_Afternoon_Peak_2014_3,
-    sub.runs_weekday_Afternoon_Peak_2015_3,
-    sub.runs_weekday_Afternoon_Peak_2016_3,
-    sub.runs_weekday_Afternoon_Peak_2017_3,
-    sub.runs_weekday_Afternoon_Peak_2018_3,
-    sub.runs_weekday_Afternoon_Peak_2019_3,
-    sub.runs_weekday_Afternoon_Peak_2020_3,
-    sub.runs_weekday_Afternoon_Peak_2021_3,
-    sub.runs_weekday_Afternoon_Peak_2022_3,
-    sub.runs_weekday_Afternoon_Peak_2023_3,
+    sub['tph_weekday_Afternoon_Peak_2014_' + md],
+    sub['tph_weekday_Afternoon_Peak_2015_' + md],
+    sub['tph_weekday_Afternoon_Peak_2016_' + md],
+    sub['tph_weekday_Afternoon_Peak_2017_' + md],
+    sub['tph_weekday_Afternoon_Peak_2018_' + md],
+    sub['tph_weekday_Afternoon_Peak_2019_' + md],
+    sub['tph_weekday_Afternoon_Peak_2020_' + md],
+    sub['tph_weekday_Afternoon_Peak_2021_' + md],
+    sub['tph_weekday_Afternoon_Peak_2022_' + md],
+    sub['tph_weekday_Afternoon_Peak_2023_' + md],
     ];
 
     var weekday_Evening = [
-    sub.runs_weekday_Evening_2004_3,
-    sub.runs_weekday_Evening_2005_3,
-    sub.runs_weekday_Evening_2006_3,
-    sub.runs_weekday_Evening_2007_3,
-    sub.runs_weekday_Evening_2008_3,
-    sub.runs_weekday_Evening_2009_3,
-    sub.runs_weekday_Evening_2010_3,
-    sub.runs_weekday_Evening_2011_3,
+    sub['tph_weekday_Evening_2004_' + md],
+    sub['tph_weekday_Evening_2005_' + md],
+    sub['tph_weekday_Evening_2006_' + md],
+    sub['tph_weekday_Evening_2007_' + md],
+    sub['tph_weekday_Evening_2008_' + md],
+    sub['tph_weekday_Evening_2009_' + md],
+    sub['tph_weekday_Evening_2010_' + md],
+    sub['tph_weekday_Evening_2011_' + md],
     null,
     null,
-    sub.runs_weekday_Evening_2014_3,
-    sub.runs_weekday_Evening_2015_3,
-    sub.runs_weekday_Evening_2016_3,
-    sub.runs_weekday_Evening_2017_3,
-    sub.runs_weekday_Evening_2018_3,
-    sub.runs_weekday_Evening_2019_3,
-    sub.runs_weekday_Evening_2020_3,
-    sub.runs_weekday_Evening_2021_3,
-    sub.runs_weekday_Evening_2022_3,
-    sub.runs_weekday_Evening_2023_3,
+    sub['tph_weekday_Evening_2014_' + md],
+    sub['tph_weekday_Evening_2015_' + md],
+    sub['tph_weekday_Evening_2016_' + md],
+    sub['tph_weekday_Evening_2017_' + md],
+    sub['tph_weekday_Evening_2018_' + md],
+    sub['tph_weekday_Evening_2019_' + md],
+    sub['tph_weekday_Evening_2020_' + md],
+    sub['tph_weekday_Evening_2021_' + md],
+    sub['tph_weekday_Evening_2022_' + md],
+    sub['tph_weekday_Evening_2023_' + md],
     ];
 
     var weekday_Night = [
-    sub.runs_weekday_Night_2004_3,
-    sub.runs_weekday_Night_2005_3,
-    sub.runs_weekday_Night_2006_3,
-    sub.runs_weekday_Night_2007_3,
-    sub.runs_weekday_Night_2008_3,
-    sub.runs_weekday_Night_2009_3,
-    sub.runs_weekday_Night_2010_3,
-    sub.runs_weekday_Night_2011_3,
+    sub['tph_weekday_Night_2004_' + md],
+    sub['tph_weekday_Night_2005_' + md],
+    sub['tph_weekday_Night_2006_' + md],
+    sub['tph_weekday_Night_2007_' + md],
+    sub['tph_weekday_Night_2008_' + md],
+    sub['tph_weekday_Night_2009_' + md],
+    sub['tph_weekday_Night_2010_' + md],
+    sub['tph_weekday_Night_2011_' + md],
     null,
     null,
-    sub.runs_weekday_Night_2014_3,
-    sub.runs_weekday_Night_2015_3,
-    sub.runs_weekday_Night_2016_3,
-    sub.runs_weekday_Night_2017_3,
-    sub.runs_weekday_Night_2018_3,
-    sub.runs_weekday_Night_2019_3,
-    sub.runs_weekday_Night_2020_3,
-    sub.runs_weekday_Night_2021_3,
-    sub.runs_weekday_Night_2022_3,
-    sub.runs_weekday_Night_2023_3,
+    sub['tph_weekday_Night_2014_' + md],
+    sub['tph_weekday_Night_2015_' + md],
+    sub['tph_weekday_Night_2016_' + md],
+    sub['tph_weekday_Night_2017_' + md],
+    sub['tph_weekday_Night_2018_' + md],
+    sub['tph_weekday_Night_2019_' + md],
+    sub['tph_weekday_Night_2020_' + md],
+    sub['tph_weekday_Night_2021_' + md],
+    sub['tph_weekday_Night_2022_' + md],
+    sub['tph_weekday_Night_2023_' + md],
     ];
 
 
@@ -474,7 +520,9 @@
 
   }
 
-
+  updateChart = function (selectedOption) {
+    lsoa_chart.update();
+  }
 
 
   map.on('load', function() {
