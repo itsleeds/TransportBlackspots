@@ -137,21 +137,25 @@ run_outlier_function <- function(trip_lsoa_data) {
   tictoc::tic(msg = "Outliers identified")
 
   # make list of distinct lsoas with good data (having been cleaned as above)
-  lsoa_list <- unique(trip_lsoa_data$lsoa11)
+  #lsoa_list <- unique(trip_lsoa_data$lsoa11)
   # make new empty data data set which will be populated by the loop below
-  clean_ts_all <- data.frame()
+  clean_ts_all <- list()
+
+  trip_lsoa_data <- trip_lsoa_data %>%
+    select(year, runs, lsoa11) %>%
+    dplyr::group_by(lsoa11) %>%
+    dplyr::group_split()
 
   # run a loop on the data for each lsoa, using the tsoutliers function
-  for(r in 1:length(lsoa_list)) {
+  for(r in 1:length(trip_lsoa_data)) {
 
     # print progress (which helps identifying location of data errors given by tsoutliers)
-    message(paste0("Running outlier analysis on ", lsoa_list[r]))
+    if(r %% 1000 == 0){
+      message(paste0(Sys.time()," Running outlier analysis on ", r))
+    }
 
     # select 'raw' runs data
-    raw <- trip_lsoa_data %>%
-      filter(lsoa11 == lsoa_list[r]) %>%
-      select(year,
-             runs)
+    raw <- trip_lsoa_data[[r]]
 
     # turn into a ts object
     raw_ts <- ts(raw$runs,
@@ -160,16 +164,17 @@ run_outlier_function <- function(trip_lsoa_data) {
     # identify outliers and turn into a new data frame
     # .preformat.ts turns the time series into a matrix, which is then turned into a data frame,
     # using the rownames (which is the calendar values from .preformat.ts) as a column field.
-    new_clean_ts <- rownames_to_column(data.frame(lsoa11 = lsoa_list[r],
+    new_clean_ts <- rownames_to_column(data.frame(lsoa11 = raw$lsoa11[1],
                                                   runs_cleaned = .preformat.ts(tsclean(raw_ts),
                                                                                calendar = TRUE)),
                                        "year")
 
     # append this to the previous results... and repeat till complete!
-    clean_ts_all <- bind_rows(clean_ts_all,
-                              new_clean_ts)
+    clean_ts_all[[r]] <- new_clean_ts
 
   }
+
+  clean_ts_all <- dplyr::bind_rows(clean_ts_all)
 
   # convert year into an integer value
   clean_ts_all <- clean_ts_all %>%
@@ -308,16 +313,15 @@ periods <- c("runs_weekday_Night",
              "runs_Sun_Afternoon_Peak",
              "runs_Sun_Evening")
 
-all_trend_data <- data.frame()
+all_trend_data <- list()
 
 for(p in periods) {
 
-  period_trend_data <- find_lsoa_trip_trends(period = p)
-
-  all_trend_data <- bind_rows(all_trend_data,
-                              period_trend_data)
+  all_trend_data[[p]] <-  find_lsoa_trip_trends(period = p)
 
 }
+
+all_trend_data <- dplyr::bind_rows(all_trend_data)
 
 saveRDS(object = all_trend_data,
         file = "data/lsoa_bustrip_trends_2008_2023.rds")
