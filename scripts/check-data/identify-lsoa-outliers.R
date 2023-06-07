@@ -150,7 +150,7 @@ run_outlier_function <- function(trip_lsoa_data) {
   for(r in 1:length(trip_lsoa_data)) {
 
     # print progress (which helps identifying location of data errors given by tsoutliers)
-    if(r %% 1000 == 0){
+    if(r %% 10000 == 0){
       message(paste0(Sys.time()," Running outlier analysis on ", r))
     }
 
