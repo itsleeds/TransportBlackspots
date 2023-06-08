@@ -272,26 +272,34 @@ assess_trip_trends <- function(trips_final) {
 # MAIN FUNCTION TO COMBINE ALL OTHER PROCESS FUNCTIONS ABOVE
 find_lsoa_trip_trends <- function(period) {
 
+  # get data (specify mode and period. default is bus)
   trips_lsoa_2004_2023 <- get_lsoa_mode_runs(mode_no = 3,
                                                 trips_col = period)
+  # add missing years for each lsoa (NAs added if year not included)
   trips_lsoa_2004_2023 <- add_missing_years(trips_lsoa_2004_2023)
+  # filter out and keep pandemic year (2020) data
   trips_lsoa_2020 <- extract_pandemic_year(trips_lsoa_2004_2023)
+  # clean data (manual removal of data points if below zscore of 1 and <2020)
   trips_lsoa_2004_2023 <- clean_data_for_outlier_analysis(trips_lsoa_2004_2023)
+  # filter out any LSOAs with insufficient data points in time series, or that have all NA values.
   trips_lsoa_2004_2023 <- remove_lsoas_with_insufficient_datapoints(trips_lsoa_2004_2023)
-
+  # run main function to produce cleaned, outlier removed, interpolated results.
   trips_lsoa_2004_2023_cleaned <- run_outlier_function(trips_lsoa_2004_2023)
-
+  # combine all data sets to make a complete set of data
   trips_lsoa_2004_2023_final <- finalise_trip_data(trips_lsoa_2004_2023,
                                                    trips_lsoa_2004_2023_cleaned,
                                                    trips_lsoa_2020)
-
+  # find trends between a select number of yearly intervals
   trips_lsoa_2004_2023_trends <- assess_trip_trends(trips_lsoa_2004_2023_final)
-
+  # identify which time of day/week trip data has been used
   trips_lsoa_2004_2023_trends <- trips_lsoa_2004_2023_trends %>%
     mutate(period_name = period)
 
 }
 
+# RUN FUNCTIONS -----------------------------------------------------------
+
+# list all times of days/weeks (these are column headings in "data/trips_per_lsoa_by_mode_2004_2023.Rds")
 periods <- c("runs_weekday_Night",
              "runs_weekday_Morning_Peak",
              "runs_weekday_Afternoon_Peak",
@@ -308,8 +316,12 @@ periods <- c("runs_weekday_Night",
              "runs_Sun_Afternoon_Peak",
              "runs_Sun_Evening")
 
+# create an empty data set
 all_trend_data <- data.frame()
 
+# run a look that runs the main function above over each time of day/week in the list above
+# and combine into one data frame
+# [estimated run time: 15 x 45mins ~ 11 hours (16GB RAM laptop)]
 for(p in periods) {
 
   period_trend_data <- find_lsoa_trip_trends(period = p)
@@ -319,8 +331,29 @@ for(p in periods) {
 
 }
 
+# save output of loop as an RDS file
 saveRDS(object = all_trend_data,
         file = "data/lsoa_bustrip_trends_2008_2023.rds")
+
+
+# SAVE DATA AT GPKG FOR ANALYSIS IN QGIS ----------------------------------
+
+lsoa_bustrips_weekday_am_peak_trends <- all_trend_data %>%
+  filter(period_name == "runs_weekday_Morning_Peak")
+
+lsoa_boundaries <- st_read("../gis-data/boundaries/lsoa/LSOAs_Dec_2011_BFC_EW_V3/")
+lsoa_boundaries <- lsoa_boundaries %>%
+  select(OBJECTID,
+         lsoa11 = LSOA11CD,
+         LSOA11NM)
+
+lsoa_bustrips_weekday_am_peak_trends <- left_join(lsoa_boundaries, lsoa_bustrips_weekday_am_peak_trends, by = "lsoa11")
+
+st_write(obj = lsoa_bustrips_weekday_am_peak_trends,
+         dsn = "../gis-data/transport/busstops.gpkg",
+         layer = "lsoa-bustrips-weekday-am-trends",
+         delete.layer = TRUE)
+
 
 #  OLD TESTS AND WORKINGS -------------------------------------------------
 
