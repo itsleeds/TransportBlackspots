@@ -8,7 +8,13 @@ source("scripts/check-data/lsoa-trips-analysis-functions.R")
 load_packages()
 
 # load data
-lsoa_trips_2004_2022 <- readRDS("data/trips_per_lsoa_2004_2022.Rds")
+lsoa_trips_2004_2023 <- readRDS("data/trips_per_lsoa_by_mode_2004_2023.Rds")
+lsoa_bustrips_2004_2023 <- lsoa_trips_2004_2023 %>%
+  filter(route_type == 3)
+names(lsoa_bustrips_2004_2023)
+
+
+
 lsoa_trips_2004_2022 <- join_metro_by_lup(lsoa_trips_2004_2022)
 
 metro_trips_data_summary <- metro_trips_analysis(lsoa_trips_2004_2022)

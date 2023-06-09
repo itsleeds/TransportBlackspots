@@ -12,6 +12,7 @@ load_packages <- function() {
   library(tictoc)
   library(pracma)
   library(openxlsx)
+  library(readxl)
 }
 load_packages()
 

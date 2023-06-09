@@ -32,10 +32,10 @@ join_metro_by_lup <- function(trips_data) {
            metro_area_code = CAUTH21CD,
            metro_area_name = CAUTH21NM)
 
-  trips_data <- left_join(trips_data, la_to_metro_lup, by = c("LAD17NM" = "local_authority_name"))
+  trips_data <- left_join(trips_data, la_to_metro_lup, by = c("local_authority_name"))
 
   trips_data <- trips_data %>%
-    mutate(metro_area_name = ifelse(RGN11NM == "London", "Greater London", metro_area_name))
+    mutate(metro_area_name = ifelse(region_name == "London", "Greater London", metro_area_name))
 
 }
 
