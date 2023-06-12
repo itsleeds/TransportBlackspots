@@ -170,7 +170,16 @@ cols_groups_la <- c("Rural-Urban Fringe" = "#fafa9d",
                     "Manufacturing Traits" = "#fd8000",
                     "Suburban Traits" = "#facfa3")
 
-ggplot(la_bustrips_by_ons, aes(x = year, y = tph_weekday_Morning_Peak, col = group_name)) +
+ons_la_class_graph <- ggplot(la_bustrips_by_ons, aes(x = year, y = tph_weekday_Morning_Peak, col = group_name)) +
+  geom_line(linewidth=1) +
+  ylab("Median bus trips per hour") +
+  xlab("Year") +
+  guides(color=guide_legend(title="Area classification", ncol =1)) +
+  scale_color_manual(values=cols_groups_la) +
+  #facet_wrap(group_name ~ ., ncol = 3, scales = "free_y") +
+  theme_bw()
+
+ons_la_class_graph_facet <- ggplot(la_bustrips_by_ons, aes(x = year, y = tph_weekday_Morning_Peak, col = group_name)) +
   geom_line(linewidth=1) +
   ylab("Median bus trips per hour") +
   xlab("Year") +
@@ -262,7 +271,16 @@ cols_groups_lsoa = c("Cosmopolitan student neighbourhoods" ='#955123',
                      "Ageing suburbanites" ='#a1a2a1',
                      "Comfortable suburbia" ='#e5e4e3')
 
-ggplot(ons_lsoa_bustrips_2004_2023, aes(x = year, y = tph_weekday_Morning_Peak, col = SOAC11NM)) +
+ons_lsoa_class_graph <- ggplot(ons_lsoa_bustrips_2004_2023, aes(x = year, y = tph_weekday_Morning_Peak, col = SOAC11NM)) +
+  geom_line(linewidth=1) +
+  ylab("Median bus trips per hour") +
+  xlab("Year") +
+  guides(color=guide_legend(title="Area classification", ncol =1)) +
+  scale_color_manual(values=cols_groups_lsoa) +
+  #facet_wrap(. ~ SOAC11NM, ncol = 3, scales = "free_y") +
+  theme_bw()
+
+ons_lsoa_class_graph_facet <- ggplot(ons_lsoa_bustrips_2004_2023, aes(x = year, y = tph_weekday_Morning_Peak, col = SOAC11NM)) +
   geom_line(linewidth=1) +
   ylab("Median bus trips per hour") +
   xlab("Year") +
@@ -282,7 +300,7 @@ rgn_bustrips_by_ons <- la_bustrips_2004_2023 %>%
   summarise(across(all_of(tph_cols), median_with_round)) %>%
   ungroup()
 
-ggplot(data = rgn_bustrips_by_ons, aes(x = year, col = region_name)) +
+rgn_graph <- ggplot(data = rgn_bustrips_by_ons, aes(x = year, col = region_name)) +
   geom_line(aes(y = tph_weekday_Morning_Peak), linewidth = 1.5, show.legend = FALSE) +
   #geom_line(aes(y = runs_pct_max_int), linetype = "dotted", linewidth = 1.5, show.legend = FALSE) +
   xlab("Year") +
@@ -319,10 +337,14 @@ metro_bustrips_summary <- metro_bustrips_2004_2023 %>%
   summarise(across(all_of(tph_cols), median_with_round)) %>%
   ungroup()
 
-ggplot(data = metro_bustrips_summary, aes(x = year, col = metro_area_name)) +
+metro_graph <- ggplot(data = metro_bustrips_summary, aes(x = year, col = metro_area_name)) +
   geom_line(aes(y = tph_weekday_Morning_Peak), linewidth = 1.5, show.legend = FALSE) +
   #geom_line(aes(y = runs_pct_max_int), linetype = "dotted", linewidth = 1.5, show.legend = FALSE) +
   xlab("Year") +
   ylab("median no. trips") +
   theme_bw() +
   facet_wrap(. ~ metro_area_name, ncol = 3, scales = "free_y")
+
+
+ggsave(rgn_graph,
+       )
