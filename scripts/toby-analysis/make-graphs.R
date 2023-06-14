@@ -301,7 +301,7 @@ rgn_bustrips_by_ons <- la_bustrips_2004_2023 %>%
   ungroup()
 
 rgn_graph <- ggplot(data = rgn_bustrips_by_ons, aes(x = year, col = region_name)) +
-  geom_line(aes(y = tph_weekday_Morning_Peak), linewidth = 1.5, show.legend = FALSE) +
+  geom_line(aes(y = tph_weekday_Morning_Peak), linewidth = 1, show.legend = FALSE) +
   #geom_line(aes(y = runs_pct_max_int), linetype = "dotted", linewidth = 1.5, show.legend = FALSE) +
   xlab("Year") +
   ylab("median no. trips") +
@@ -343,8 +343,49 @@ metro_graph <- ggplot(data = metro_bustrips_summary, aes(x = year, col = metro_a
   xlab("Year") +
   ylab("median no. trips") +
   theme_bw() +
-  facet_wrap(. ~ metro_area_name, ncol = 3, scales = "free_y")
+  facet_wrap(. ~ metro_area_name, ncol = 3)
 
 
-ggsave(rgn_graph,
-       )
+ggsave(filename = "plots/june-2023/region_bustrips_trends.png",
+       plot = rgn_graph,
+       device = "png",
+       width = 25,
+       height = 30,
+       units = "cm")
+
+ggsave(filename = "plots/june-2023/metroregion_bustrips_trends.png",
+       plot = metro_graph,
+       device = "png",
+       width = 25,
+       height = 30,
+       units = "cm")
+
+
+
+ggsave(filename = "plots/june-2023/ONS-LA-class.png",
+       plot = ons_la_class_graph,
+       device = "png",
+       width = 25,
+       height = 30,
+       units = "cm")
+
+ggsave(filename = "plots/june-2023/ONS-LA-class-facet.png",
+       plot = ons_la_class_graph_facet,
+       device = "png",
+       width = 25,
+       height = 30,
+       units = "cm")
+
+ggsave(filename = "plots/june-2023/ONS-LSOA-class.png",
+       plot = ons_lsoa_class_graph,
+       device = "png",
+       width = 25,
+       height = 30,
+       units = "cm")
+
+ggsave(filename = "plots/june-2023/ONS-LSOA-class-facet.png",
+       plot = ons_lsoa_class_graph_facet,
+       device = "png",
+       width = 25,
+       height = 30,
+       units = "cm")
