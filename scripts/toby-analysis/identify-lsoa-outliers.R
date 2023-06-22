@@ -1,7 +1,7 @@
 
 # set up
 rm(list = ls())
-source("scripts/check-data/lsoa-trips-analysis-functions.R")
+source("scripts/toby-analysis/bus-trips-analysis-functions.R")
 
 load_packages()
 library(fpp2)
@@ -11,8 +11,9 @@ library(tsoutliers)
 
 #  functions to clean, process and find trends for trips in each l --------
 
+
 # get data and filter for mode of transport and select a given time of day/week
-get_lsoa_mode_runs <- function(mode_no = 3, trips_col = "runs_weekday_Morning_Peak") {
+get_lsoa_mode_runs <- function(mode_no = 3, trips_col = "runs_weekday_Morning_Peak", geog) {
 
   # get full lsoa data set
   runs_mode_lsoa_2004_2023 <- readRDS("data/trips_per_lsoa_by_mode_2004_2023.Rds")

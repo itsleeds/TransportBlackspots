@@ -70,7 +70,7 @@ make_lsoa_to_oslaua_lup <- function() {
 
 
 #' Make LA to Region lookup
-make_oslaua_to_rgn_lup <- function() {
+make_oslaua_to_rgn_lup <- function(add_la_names = FALSE) {
 
   # select distinct fields and entries from onspd
   la_to_rgn_lup <- onspd %>%
@@ -87,15 +87,17 @@ make_oslaua_to_rgn_lup <- function() {
     select(-no_pcs) %>%
     ungroup()
 
-  ## read in la names
-  #la_names_location <- list.files("../ons-geog-data/onspd/Documents/", pattern = "LA_UA.+csv", full.names = TRUE)
-  #la_names <- read.csv(la_names_location,
-  #                      stringsAsFactors = FALSE)
-  #la_names <- la_names[c(1:2)]
-  #colnames(la_names) <- c("oslaua", "local_authority_name")
+  if(add_la_names) {
+    ## read in la names
+    la_names_location <- list.files("../ons-geog-data/onspd/Documents/", pattern = "LA_UA.+csv", full.names = TRUE)
+    la_names <- read.csv(la_names_location,
+                         stringsAsFactors = FALSE)
+    la_names <- la_names[c(1:2)]
+    colnames(la_names) <- c("oslaua", "local_authority_name")
 
-  ## join names to data
-  #la_to_rgn_lup <- left_join(la_to_rgn_lup, la_names, by = "oslaua")
+    ## join names to data
+    la_to_rgn_lup <- left_join(la_to_rgn_lup, la_names, by = "oslaua")
+  }
 
   # read in region names and rename fields
   rgn_names_location <-  list.files("../ons-geog-data/onspd/Documents/", pattern = "Region.+csv", full.names = TRUE)

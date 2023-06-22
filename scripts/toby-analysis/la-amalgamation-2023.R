@@ -35,7 +35,7 @@ cumberland.consolidation <- function(data) {
   #filter(oslaua.list, local_authority_name %in% cumberland_old)
   data <- bespoke.la.combination(data,
                                  old.la.codes = c("E07000028", "E07000026", "E07000029"),
-                                 new.la.code = "E07002023-1",
+                                 new.la.code = "E06000063",
                                  new.la.name = "Cumberland")
 
 }
@@ -46,7 +46,7 @@ westmorland.consolidation <- function(data) {
   #filter(oslaua.list, local_authority_name %in% westmorland_old)
   data <- bespoke.la.combination(data,
                                  old.la.codes = c("E07000030", "E07000031", "E07000027"),
-                                 new.la.code = "E07002023-2",
+                                 new.la.code = "E06000064",
                                  new.la.name = "Westmorland and Furness")
 
 }
@@ -57,7 +57,7 @@ northyorks.consolidation <- function(data) {
   #filter(oslaua.list, local_authority_name %in% ny_old)
   data <- bespoke.la.combination(data,
                                  old.la.codes = c("E07000163", "E07000165", "E07000166", "E07000164", "E07000167", "E07000169", "E07000168"),
-                                 new.la.code = "E07002023-3",
+                                 new.la.code = "E06000065",
                                  new.la.name = "North Yorkshire")
 
 }
@@ -67,7 +67,7 @@ somerset.consolidation <- function(data) {
   #filter(oslaua.list, local_authority_name %in% somerset_old)
   data <- bespoke.la.combination(data,
                                  old.la.codes = c("E07000189", "E07000187",  "E07000188", "E07000190", "E07000191"),
-                                 new.la.code = "E07002023-4",
+                                 new.la.code = "E06000066",
                                  new.la.name = "Somerset")
 }
 

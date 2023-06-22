@@ -2,7 +2,7 @@
 rm(list = ls())
 
 # load functions
-source("scripts/check-data/lsoa-trips-analysis-functions.R")
+source("scripts/toby-analysis/lsoa-trips-analysis-functions.R")
 
 # load packages
 load_packages()
