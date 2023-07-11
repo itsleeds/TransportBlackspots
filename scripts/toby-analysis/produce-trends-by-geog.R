@@ -689,10 +689,15 @@ lsoa_trips_trend <- lsoa_trips_trend %>%
 # over 4 = good
 # 2 - 4 = okay
 # less than 2 poor
+threshold_1 = 4
+threshold_2 = 2
 lsoa_trips_trend <- lsoa_trips_trend %>%
-  mutate(service_frequency_2008 = case_when(tph_per_route_2008 > 4 ~ "Good",
-                                            between(tph_per_route_2008, 2, 4) ~ "Acceptable",
-                                            tph_per_route_2008 < 2 ~ "Poor"))
+  mutate(service_frequency_2008 = case_when(tph_per_route_2008 > threshold_1 ~ "1",
+                                            between(tph_per_route_2008, threshold_2, threshold_1) ~ "2",
+                                            tph_per_route_2008 < threshold_2 ~ "3"),
+         service_frequency_2008_label = case_when(tph_per_route_2008 > threshold_1 ~ "Good",
+                                            between(tph_per_route_2008, threshold_2, threshold_1) ~ "OK",
+                                            tph_per_route_2008 < threshold_2 ~ "Poor"))
 # check: table(lsoa_trips_trend$service_frequency_2008)
 
 #categorise change in service as follow:
@@ -704,14 +709,40 @@ lsoa_trips_trend <- lsoa_trips_trend %>%
 # over 0 = improved
 # between -0.3 and 0 = reduced somewhat
 # below -0.3 reduced significantly
-lsoa_trips_trend <- lsoa_trips_trend %>%
-  mutate(service_reduction_2008_23 = case_when(trips_change_2008_2023_pct > 0 ~ "Improved",
-                                            between(trips_change_2008_2023_pct, -0.3, 0) ~ "Reduced",
-                                            trips_change_2008_2023_pct < -0.3 ~ "Reduced significantly"))
-# check: table(lsoa_trips_trend$service_reduction_2008_23)
 
+a_threshold = 0
+b_threshold = -0.3
+
+lsoa_trips_trend <- lsoa_trips_trend %>%
+  mutate(service_reduction_2008_23 = case_when(trips_change_2008_2023_pct >= a_threshold ~ "A",
+                                            between(trips_change_2008_2023_pct, b_threshold, a_threshold) ~ "B",
+                                            trips_change_2008_2023_pct < b_threshold ~ "C"),
+         service_reduction_2008_23_label = case_when(trips_change_2008_2023_pct >= a_threshold ~ "Same or improved",
+                                               between(trips_change_2008_2023_pct, b_threshold, a_threshold) ~ "Reduced slightly",
+                                               trips_change_2008_2023_pct < b_threshold ~ "Reduced significantly"))
+# check: table(lsoa_trips_trend$service_reduction_2008_23)
 table(lsoa_trips_trend$service_frequency_2008,
       lsoa_trips_trend$service_reduction_2008_23)
+
+lsoa_trips_bivariate <- lsoa_trips_trend %>%
+  unite(trips_bi_variate, service_reduction_2008_23, service_frequency_2008, sep = "", remove = FALSE) %>%
+  select(lsoa11,
+         trips_bi_variate,
+         service_frequency_2008,
+         service_frequency_2008_label,
+         service_reduction_2008_23,
+         service_reduction_2008_23_label)
+
+lsoa_boundaries <- st_read("../gis-data/boundaries/lsoa/LSOAs_Dec_2011_BFC_EW_V3/Lower_Layer_Super_Output_Areas_(December_2011)_Boundaries_Full_Clipped_(BFC)_EW_V3.shp")
+lsoa_trips_bivariate <- left_join(lsoa_boundaries, lsoa_trips_bivariate, by = c("LSOA11CD" = "lsoa11"))
+
+#3A #cc0024  #3B #8a274a  #3C #4b264d
+#2A #dd7c8a  #2B #8d6c8f  #2C #4a4779
+#1A #dddddd  #1B #7bb3d1  #1C #016eae
+
+tmap_mode("view")
+tm_shape(lsoa_trips_bivariate) +
+  tm_polygons(col = "trips_bi_variate")
 
 
 # save main outputs as RDS
