@@ -4,9 +4,6 @@ rm(list = ls())
 source("scripts/toby-analysis/bus-trips-analysis-functions.R")
 
 load_packages()
-library(fpp2)
-#library(zoo)
-library(tsoutliers)
 
 
 #  functions to clean, process and find trends for trips in each l --------

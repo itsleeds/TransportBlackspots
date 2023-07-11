@@ -14,6 +14,10 @@ options(dplyr.summarise.inform = FALSE)
 
 # get onspd
 onspd <- get_onspd(keep.only.current = TRUE)
+# get lsoa to LA and Region lookups
+lsoa_to_la_lup <- make_lsoa_to_oslaua_lup()
+la_to_rgn_lup <- make_oslaua_to_rgn_lup(add_la_names = TRUE)
+
 
 #  functions to clean, process and find trends for trips in each l --------
 
@@ -344,7 +348,7 @@ make_trend_data <- function(periods, geog, geog_name) {
 
 }
 
-make_lsoa_trend_data <- function() {
+make_lsoa_trend_data <- function(periods) {
 
   # create an empty list
   lsoa_trend_data <- list()
@@ -366,12 +370,7 @@ make_lsoa_trend_data <- function() {
 
 }
 
-
-add_lacode_region <- function(la_trend_data) {
-
-  oslaua_to_rgn <- make_oslaua_to_rgn_lup(add_la_names = TRUE)
-
-  la_trend_data <- left_join(la_trend_data, oslaua_to_rgn, by = "local_authority_name")
+identify_inner_outer_london <- function(trend_data) {
 
   inner_london <- c("Camden",
                     "Hackney",
@@ -388,11 +387,25 @@ add_lacode_region <- function(la_trend_data) {
                     "Haringey",
                     "Newham")
 
-  la_trend_data <- la_trend_data %>%
+  trend_data <- trend_data %>%
     mutate(london = ifelse(region_name == "London", "London", "Outside London")) %>%
     mutate(london = case_when(london == "London" & local_authority_name %in% inner_london ~ "Inner London",
                               london == "London" & !local_authority_name %in% inner_london ~ "Outer London",
-                              TRUE ~ london)) %>%
+                              TRUE ~ london))
+
+}
+
+add_lacode_region <- function(la_trend_data) {
+
+  # join oslaua and region by la name
+  oslaua_to_rgn <- make_oslaua_to_rgn_lup(add_la_names = TRUE)
+  la_trend_data <- left_join(la_trend_data, oslaua_to_rgn, by = "local_authority_name")
+
+  # indentity/label inner and outer london
+  la_trend_data <- indentify_inner_outer_london(la_trend_data)
+
+  # reorder columns
+  la_trend_data <- la_trend_data %>%
     select(oslaua,
            local_authority_name,
            rgn,
@@ -436,6 +449,68 @@ add_la_rural_urban_class <- function(la_trend_data) {
 
 }
 
+
+# produce statistics for region and also for london/non-london
+summarise_trend_data <- function(la_trend_data, ...) {
+
+  region_trend_data <- la_trend_data %>%
+    group_by(...) %>%
+    summarise(trips_2006_08 = mean(trips_2006_08),
+              trips_2019 = mean(trips_2019),
+              trips_2022 = mean(trips_2022),
+              trips_2023 = mean(trips_2023)) %>%
+    ungroup() %>%
+
+    mutate(trips_change_2008_2019 = trips_2019 - trips_2006_08,
+           trips_change_2008_2022 = trips_2022 - trips_2006_08,
+           trips_change_2008_2023 = trips_2023 - trips_2006_08,
+           trips_change_2019_2023 = trips_2023 - trips_2019,
+           trips_change_2022_2023 = trips_2023 - trips_2022) %>%
+
+    mutate(trips_change_2008_2019_pct  = trips_change_2008_2019  / trips_2006_08,
+           trips_change_2008_2022_pct = trips_change_2008_2022 / trips_2006_08,
+           trips_change_2008_2023_pct  = trips_change_2008_2023  / trips_2006_08,
+           trips_change_2019_2023_pct  = trips_change_2019_2023  / trips_2019,
+           trips_change_2022_2023_pct = trips_change_2022_2023 / trips_2022,
+    )
+
+}
+
+
+# ADD GEOGRAPHY AND LONDON UNDERGROUND DATA for a particular period period name
+add_lsoa_geog_details <- function(lsoa_trend_data, period = "tph_weekday_Morning_Peak") {
+
+  # filter to keep just one period
+  lsoa_trips_trend <- lsoa_trend_data %>%
+    filter(grepl(period, period_name))
+
+  # join LA and region data
+  lsoa_trips_trend <- left_join(lsoa_trips_trend, lsoa_to_la_lup, by = "lsoa11")
+  lsoa_trips_trend <- left_join(lsoa_trips_trend, la_to_rgn_lup, by = "oslaua")
+
+  # add london details
+  lsoa_trips_trend <- add_london_metro_lsoas(lsoa_trips_trend)
+  lsoa_trips_trend <- identify_inner_outer_london(lsoa_trips_trend)
+
+  lsoa_trips_trend <- lsoa_trips_trend %>%
+    mutate(london_tube = case_when(region_name == "London" & london_underground ~ "London: On tube",
+                                   region_name == "London" & !london_underground ~ "London: Off tube",
+                                   TRUE ~ "Outside London"))
+
+  lsoa_trips_trend <- lsoa_trips_trend %>%
+    select(lsoa11,
+           oslaua,
+           local_authority_name,
+           rgn,
+           region_name,
+           london,
+           london_underground,
+           london_tube,
+           everything())
+
+}
+
+
 # list all times of days/weeks (these are column headings in "data/trips_per_lsoa_by_mode_2004_2023.Rds")
 periods <- c(#"runs_weekday_Night",
              #"runs_weekday_Morning_Peak",
@@ -469,17 +544,182 @@ periods <- c(#"runs_weekday_Night",
              "tph_Sun_Evening"
              )
 
+
+# LA trend data -----------------------------------------------------------
+
 la_trend_data <- make_trend_data(periods, geog = "la", geog_name = local_authority_name)
 la_trend_data <- add_lacode_region(la_trend_data)
 la_trend_data <- add_la_rural_urban_class(la_trend_data)
 region_trend_data <- summarise_trend_data(la_trend_data, period_name, rgn, region_name)
-
 la_trend_data_eng <- la_trend_data %>%
   filter(!region_name %in% c("Wales", "Scotland"))
 
-london_trend_data <- summarise_trend_data(la_trend_data_eng, period_name, london, rural_urban)
 
-lsoa_trend_data <- make_trend_data(periods, geog = "lsoa", geog_name = lsoa11)
+# LSOA trend data ---------------------------------------------------------
+
+lsoa_trend_data <- make_lsoa_trend_data(periods)
+lsoa_trips_trend <- add_lsoa_geog_details(lsoa_trend_data, "tph_weekday_Morning_Peak")
+
+
+
+
+london_trend_data <- summarise_trend_data(la_trend_data_eng, period_name, london, rural_urban)
+london_tube_summary <- summarise_trend_data(lsoa_trips_trend, london_tube)
+
+london_tube_graphdata <- london_tube_summary %>%
+  select(london_tube,
+         `2008` = trips_2006_08,
+         `2019` = trips_2019,
+         `2022` = trips_2022,
+         `2023` = trips_2023) %>%
+  gather(key = year,
+         value = trips_per_hour,
+         -london_tube) %>%
+  mutate(year = as.integer(year))
+
+london_tube_graphdata <- london_tube_graphdata %>%
+  group_by(london_tube) %>%
+  mutate(trips_per_hour_pctmax = trips_per_hour / trips_per_hour[year == 2008]) %>%
+  ungroup() %>%
+  rename(Location = london_tube)
+
+ggplot(data = london_tube_graphdata, aes(x = year, y = trips_per_hour_pctmax, col = Location)) +
+  geom_line(linewidth = 1) +
+  geom_point(size = 4, shape = "circle open") +
+  ylim(c(0,1.2)) +
+  theme_bw() +
+  #theme_classic() +
+  #theme(axis.line.x = element_line(colour = 'black', size=0.5, linetype='solid'),
+  #      axis.line.y = element_line(colour = 'black', size=0.5, linetype='solid')) +
+  #theme(axis.line = element_line(colour = "black", linewidth = 1)) +
+  #scale_x_continuous(expand=c(0,0)) +
+  xlab("Year") +
+  ylab("Average number of trips per hour (rush hour)")
+
+calculate_routes_per_lsoa <- function(lsoa_boundaries, year) {
+
+  #routes_2023 <- st_read("data/routes/routes_2023.geojson")
+  file.path.full <- paste0("data/route-stops/route-stops-", year, "/route-stops-", year, ".shp")
+  routestops <- st_read(file.path.full)
+
+  # clean and keep only route_id (and geom)
+  routestops <- routestops %>%
+    filter(route_type == 3) %>%
+    select(route_id)
+
+  routestops <- routestops %>%
+    st_transform(crs = 27700)
+
+  lsoa_stops <- st_intersection(lsoa_boundaries, routestops)
+  routes_per_lsoa <- lsoa_stops %>%
+    st_drop_geometry() %>%
+    distinct(lsoa11,
+             route_id) %>%
+    group_by(lsoa11) %>%
+    summarise(number_of_routes = n()) %>%
+    ungroup()
+
+  # name column for year
+  colnames(routes_per_lsoa)[2] <- paste0("number_of_routes_", year)
+
+  return(routes_per_lsoa)
+
+}
+
+calculate_number_of_routes_per_lsoa <- function() {
+
+  # start timer
+  tic("make routes per LSOA")
+
+  # intersect routestops with lsoas to determine how many different routes pass through each lsoa
+  # Use LSOA centroid data (i.e. within 500m)
+  lsoa_boundaries <- readRDS("data/lsoa/GB_LSOA_2011_full_or_500mBuff.Rds")
+  lsoa_boundaries <- lsoa_boundaries %>%
+    select(lsoa11 = code,
+           geometry)
+
+  routes_per_lsoa_2008 <- calculate_routes_per_lsoa(lsoa_boundaries, "2008")
+  routes_per_lsoa_2019 <- calculate_routes_per_lsoa(lsoa_boundaries, "2019")
+  routes_per_lsoa_2022 <- calculate_routes_per_lsoa(lsoa_boundaries, "2022")
+  routes_per_lsoa_2023 <- calculate_routes_per_lsoa(lsoa_boundaries, "2023")
+
+  saveRDS(routes_per_lsoa_2008,
+          "data/route-stops/route-stops-2008/routes_per_lsoa_2008.rds")
+  saveRDS(routes_per_lsoa_2019,
+          "data/route-stops/routes_per_lsoa_2019.rds")
+  saveRDS(routes_per_lsoa_2022,
+          "data/route-stops/routes_per_lsoa_2022.rds")
+  saveRDS(routes_per_lsoa_2023,
+          "data/route-stops/routes_per_lsoa_2023.rds")
+
+  lsoas <- st_drop_geometry(lsoa_boundaries)
+
+  routes_per_lsoa_all <- Reduce(function(x, y) left_join(x, y, by = "lsoa11"),
+                                list(lsoas,
+                                     routes_per_lsoa_2008,
+                                     routes_per_lsoa_2019,
+                                     routes_per_lsoa_2022,
+                                     routes_per_lsoa_2023))
+
+  saveRDS(routes_per_lsoa_all,
+          "data/route-stops/routes_per_lsoa_2008_2023.rds")
+
+  routes_per_lsoa_all %>%
+    summarise(across(where(is.numeric), sum, na.rm = TRUE))
+
+  # end timer
+  toc()
+
+}
+
+routes_per_lsoa_2008_2023 <- read_rds("data/route-stops/routes_per_lsoa_2008_2023.rds")
+lsoa_trips_trend <- left_join(lsoa_trips_trend, routes_per_lsoa_2008_2023, by = "lsoa11")
+
+# calculate the number of tph per route
+# PLACEHOLDER: number of routes per LSOA is wrong for later years, waiting for data to be redone.
+# In the meantime, just work with 2008 number of routes (which will over estimate it for later years)
+lsoa_trips_trend <- lsoa_trips_trend %>%
+  mutate(tph_per_route_2008 = trips_2006_08 / number_of_routes_2008,
+         tph_per_route_2019 = trips_2019 / number_of_routes_2008,
+         tph_per_route_2022 = trips_2022 / number_of_routes_2008,
+         tph_per_route_2023 = trips_2023 / number_of_routes_2008)
+
+#categorise tph per route as follows:
+# > summary(lsoa_trips_trend$tph_per_route_2008)
+# over 4 = good
+# 2 - 4 = okay
+# less than 2 poor
+lsoa_trips_trend <- lsoa_trips_trend %>%
+  mutate(service_frequency_2008 = case_when(tph_per_route_2008 > 4 ~ "Good",
+                                            between(tph_per_route_2008, 2, 4) ~ "Acceptable",
+                                            tph_per_route_2008 < 2 ~ "Poor"))
+# check: table(lsoa_trips_trend$service_frequency_2008)
+
+#categorise change in service as follow:
+#summary(lsoa_trips_trend$trips_change_2008_2023_pct, na.rm = TRUE)
+#hist(lsoa_trips_trend$trips_change_2008_2023_pct, breaks = 100)
+#table(lsoa_trips_trend$trips_change_2008_2023_pct > 0)
+#table(between(lsoa_trips_trend$trips_change_2008_2023_pct, -0.3, 0))
+#table(lsoa_trips_trend$trips_change_2008_2023_pct < -0.3)
+# over 0 = improved
+# between -0.3 and 0 = reduced somewhat
+# below -0.3 reduced significantly
+lsoa_trips_trend <- lsoa_trips_trend %>%
+  mutate(service_reduction_2008_23 = case_when(trips_change_2008_2023_pct > 0 ~ "Improved",
+                                            between(trips_change_2008_2023_pct, -0.3, 0) ~ "Reduced",
+                                            trips_change_2008_2023_pct < -0.3 ~ "Reduced significantly"))
+# check: table(lsoa_trips_trend$service_reduction_2008_23)
+
+table(lsoa_trips_trend$service_frequency_2008,
+      lsoa_trips_trend$service_reduction_2008_23)
+
+
+# save main outputs as RDS
+saveRDS(object = la_trend_data,
+        file = "data/la_bustrip_trends_2008_2023.rds")
+saveRDS(object = lsoa_trend_data,
+        file = "data/lsoa_bustrip_trends_2008_2023.rds")
+
 
 # summarise by london and non-london averages for weekday_peaks (aka rush hour)
 national_trend_data <- london_trend_data %>%
@@ -514,48 +754,18 @@ ggplot(data = national_trend_graph_data, aes(x = year, y = trips_per_hour, col =
 ggplot(data = national_trend_graph_data, aes(x = year, y = trips_per_hour_pctmax, col = location)) +
   geom_line(linewidth = 1) +
   geom_point(size = 4, shape = "circle open") +
+  ylim(c(0,1.2)) +
   theme_bw() +
   xlab("Year") +
-  ylab("Average number of trips per hour (rush hour)") +
-  ylim(c(0,1.2))
+  ylab("Average number of trips per hour (rush hour)")
 
 
 # add rural classification to la.
 
 
-# produce statistics for region and also for london/non-london
-summarise_trend_data <- function(la_trend_data, ...) {
-
-  region_trend_data <- la_trend_data %>%
-    group_by(...) %>%
-    summarise(trips_2006_08 = mean(trips_2006_08),
-              trips_2019 = mean(trips_2019),
-              trips_2022 = mean(trips_2022),
-              trips_2023 = mean(trips_2023)) %>%
-    ungroup() %>%
-
-    mutate(trips_change_2008_2019 = trips_2019 - trips_2006_08,
-           trips_change_2008_2022 = trips_2022 - trips_2006_08,
-           trips_change_2008_2023 = trips_2023 - trips_2006_08,
-           trips_change_2019_2023 = trips_2023 - trips_2019,
-           trips_change_2022_2023 = trips_2023 - trips_2022) %>%
-
-    mutate(trips_change_2008_2019_pct  = trips_change_2008_2019  / trips_2006_08,
-           trips_change_2008_2022_pct = trips_change_2008_2022 / trips_2006_08,
-           trips_change_2008_2023_pct  = trips_change_2008_2023  / trips_2006_08,
-           trips_change_2019_2023_pct  = trips_change_2019_2023  / trips_2019,
-           trips_change_2022_2023_pct = trips_change_2022_2023 / trips_2022,
-    )
-
-}
 
 # SAVE OUTPUTS ------------------------------------------------------------
 
-
-
-# save output of loop as an RDS file
-saveRDS(object = all_trend_data,
-        file = "data/lsoa_bustrip_trends_2008_2023.rds")
 
 
 # SAVE DATA AT GPKG FOR ANALYSIS IN QGIS ----------------------------------
