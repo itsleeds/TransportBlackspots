@@ -2,7 +2,7 @@ library(tmap)
 library(ggplot2)
 library(dplyr)
 
-lamode = FALSE
+lamode = TRUE
 
 zone = readRDS("data/GB_LSOA_2011_super_generalised.Rds")
 zone_service <- list()
@@ -20,79 +20,79 @@ for(i in c(2004:2011,2014:2023)){
 
 zone_service = dplyr::bind_rows(zone_service)
 
-# COmbine Weekdays
-zone_service$runs_weekday_Night <- zone_service$runs_Mon_Night +
+# Combine Weekdays
+zone_service$runs_weekday_Night <- (zone_service$runs_Mon_Night +
   zone_service$runs_Tue_Night +
   zone_service$runs_Wed_Night +
   zone_service$runs_Thu_Night +
-  zone_service$runs_Fri_Night / 5
+  zone_service$runs_Fri_Night) / 5
 
-zone_service$runs_weekday_Morning_Peak <- zone_service$`runs_Mon_Morning Peak` +
+zone_service$runs_weekday_Morning_Peak <- (zone_service$`runs_Mon_Morning Peak` +
   zone_service$`runs_Tue_Morning Peak` +
   zone_service$`runs_Wed_Morning Peak` +
   zone_service$`runs_Thu_Morning Peak` +
-  zone_service$`runs_Fri_Morning Peak` / 5
+  zone_service$`runs_Fri_Morning Peak`) / 5
 
-zone_service$runs_weekday_Afternoon_Peak <- zone_service$`runs_Mon_Afternoon Peak` +
+zone_service$runs_weekday_Afternoon_Peak <- (zone_service$`runs_Mon_Afternoon Peak` +
   zone_service$`runs_Tue_Afternoon Peak` +
   zone_service$`runs_Wed_Afternoon Peak` +
   zone_service$`runs_Thu_Afternoon Peak` +
-  zone_service$`runs_Fri_Afternoon Peak` / 5
+  zone_service$`runs_Fri_Afternoon Peak`) / 5
 
-zone_service$runs_weekday_Midday <- zone_service$runs_Mon_Midday +
+zone_service$runs_weekday_Midday <- (zone_service$runs_Mon_Midday +
   zone_service$runs_Tue_Midday +
   zone_service$runs_Wed_Midday +
   zone_service$runs_Thu_Midday +
-  zone_service$runs_Fri_Midday / 5
+  zone_service$runs_Fri_Midday) / 5
 
-zone_service$runs_weekday_Evening <- zone_service$runs_Mon_Evening +
+zone_service$runs_weekday_Evening <- (zone_service$runs_Mon_Evening +
   zone_service$runs_Tue_Evening +
   zone_service$runs_Wed_Evening +
   zone_service$runs_Thu_Evening +
-  zone_service$runs_Fri_Evening / 5
+  zone_service$runs_Fri_Evening) / 5
 
-zone_service$runs_weekday_Night <- zone_service$runs_Mon_Night +
+zone_service$runs_weekday_Night <- (zone_service$runs_Mon_Night +
   zone_service$runs_Tue_Night +
   zone_service$runs_Wed_Night +
   zone_service$runs_Thu_Night +
-  zone_service$runs_Fri_Night / 5
+  zone_service$runs_Fri_Night) / 5
 
 
-zone_service$tph_weekday_Night <- zone_service$tph_Mon_Night +
+zone_service$tph_weekday_Night <- (zone_service$tph_Mon_Night +
   zone_service$tph_Tue_Night +
   zone_service$tph_Wed_Night +
   zone_service$tph_Thu_Night +
-  zone_service$tph_Fri_Night / 5
+  zone_service$tph_Fri_Night) / 5
 
-zone_service$tph_weekday_Morning_Peak <- zone_service$`tph_Mon_Morning Peak` +
+zone_service$tph_weekday_Morning_Peak <- (zone_service$`tph_Mon_Morning Peak` +
   zone_service$`tph_Tue_Morning Peak` +
   zone_service$`tph_Wed_Morning Peak` +
   zone_service$`tph_Thu_Morning Peak` +
-  zone_service$`tph_Fri_Morning Peak` / 5
+  zone_service$`tph_Fri_Morning Peak`) / 5
 
-zone_service$tph_weekday_Afternoon_Peak <- zone_service$`tph_Mon_Afternoon Peak` +
+zone_service$tph_weekday_Afternoon_Peak <- (zone_service$`tph_Mon_Afternoon Peak` +
   zone_service$`tph_Tue_Afternoon Peak` +
   zone_service$`tph_Wed_Afternoon Peak` +
   zone_service$`tph_Thu_Afternoon Peak` +
-  zone_service$`tph_Fri_Afternoon Peak` / 5
+  zone_service$`tph_Fri_Afternoon Peak`) / 5
 
-zone_service$tph_weekday_Midday <- zone_service$tph_Mon_Midday +
+zone_service$tph_weekday_Midday <- (zone_service$tph_Mon_Midday +
   zone_service$tph_Tue_Midday +
   zone_service$tph_Wed_Midday +
   zone_service$tph_Thu_Midday +
-  zone_service$tph_Fri_Midday / 5
+  zone_service$tph_Fri_Midday) / 5
 
-zone_service$tph_weekday_Evening <- zone_service$tph_Mon_Evening +
+zone_service$tph_weekday_Evening <- (zone_service$tph_Mon_Evening +
   zone_service$tph_Tue_Evening +
   zone_service$tph_Wed_Evening +
   zone_service$tph_Thu_Evening +
-  zone_service$tph_Fri_Evening / 5
+  zone_service$tph_Fri_Evening) / 5
 
-zone_service$tph_weekday_Night <- zone_service$tph_Mon_Night +
+zone_service$tph_weekday_Night <- (zone_service$tph_Mon_Night +
   zone_service$tph_Tue_Night +
   zone_service$tph_Wed_Night +
   zone_service$tph_Thu_Night +
-  zone_service$tph_Fri_Night / 5
+  zone_service$tph_Fri_Night) / 5
 
 zone_service <- zone_service[,c("zone_id",
                                 "route_type",

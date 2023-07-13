@@ -12,12 +12,15 @@ oac <- read.csv("D:/OneDrive - University of Leeds/Data/OA Bounadries/GB_OA_LSOA
 oac <- oac[,c("LSOA11CD","SOAC11NM")]
 oac <- oac[!duplicated(oac$LSOA11CD),]
 
-pt = pt[,c("zone_id","route_type","year","tph_weekday_Morning_Peak")]
+time = "tph_weekday_Morning_Peak"
+
+
+pt = pt[,c("zone_id","route_type","year",time)]
 pt = pt[pt$year %in% c(2008,2018),]
 
 pt = pivot_wider(pt, id_cols = c("zone_id","route_type"),
                  names_from = "year",
-                 values_from = "tph_weekday_Morning_Peak")
+                 values_from = time)
 
 car = car[car$year %in% c(2008,2018),]
 car = car[,c("code","year","cars_per_person"),]
@@ -29,7 +32,7 @@ pt = pt[pt$zone_id %in% car$code,]
 oac = oac[oac$LSOA11CD %in% car$code,]
 
 names(car) = c("code","carpp_2008","carpp_2018")
-names(pt) = c("zone_id","route_type","tph_2008","tph_2018")
+names(pt) = c("zone_id","route_type","tph_2018","tph_2008")
 
 pt_bus = pt[pt$route_type == 3,]
 
@@ -63,14 +66,24 @@ cols = c("Cosmopolitan student neighbourhoods" ='#955123',
          "Ageing suburbanites" ='#a1a2a1',
          "Comfortable suburbia" ='#e5e4e3')
 
+#cols = factor(cols, levels = unname(cols))
+all_bus$SOAC11NM = factor(all_bus$SOAC11NM, levels = names(cols))
 
 ggplot(all_bus, aes(x = tph_2018, y = carpp_2018, color = SOAC11NM)) +
-  geom_point() +
+  geom_point(size=0.1, shape=15) +
+  geom_smooth(data = all_bus, aes(x = tph_2018, y = carpp_2018, color = NULL), show.legend = FALSE) +
   ylab("Cars per person 2018") +
-  xlab("PT trips per hour AM peak 2018") +
-  ylim(0,1.5) +
-  guides(color=guide_legend(title="Area classification", ncol =1)) +
-  scale_color_manual(values=cols)
+  xlab("Bus trips accessible per hour during AM peak 2018") +
+  guides(color=guide_legend(title="Area classification", ncol =1, override.aes = list(size=2))) +
+  scale_color_manual(values=cols) +
+  theme(legend.text = element_text(size=5)) +
+  theme(legend.key.size = unit(4, 'mm')) +
+  scale_x_continuous(expand = c(0, 0), limits = c(0,2500)) +
+  scale_y_continuous(expand = c(0, 0), limits = c(0,1.5))
+ggsave("plots/car_ownership_vs_pt_frequecy.png", dpi = 600)
+
+foo = all_bus[all_bus$carpp_2018 < 0.1 & all_bus$tph_2018 < 100,]
+
 
 all_bus$change_carpp = (all_bus$carpp_2018 - all_bus$carpp_2008) / all_bus$carpp_2008 * 100
 all_bus$change_tph = (all_bus$tph_2018 - all_bus$tph_2008) / all_bus$tph_2008 * 100
