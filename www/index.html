@@ -170,14 +170,14 @@
       <div class="l_r">
         <div class="lb"><span style="background-color: #a50026"></span>0</div>
         <div class="lb"><span style="background-color: #d73027"></span>0.1</div>
-        <div class="lb"><span style="background-color: #f46d43"></span>0.5</div>
-        <div class="lb"><span style="background-color: #fdae61"></span>10</div>
-        <div class="lb"><span style="background-color: #fee090"></span>20</div>
-        <div class="lb"><span style="background-color: #e0f3f8"></span>50</div>
-        <div class="lb"><span style="background-color: #abd9e9"></span>100</div>
-        <div class="lb"><span style="background-color: #74add1"></span>200</div>
-        <div class="lb"><span style="background-color: #4575b4"></span>500</div>
-        <div class="lb"><span style="background-color: #313695"></span>7500</div>
+        <div class="lb"><span style="background-color: #f46d43"></span>2</div>
+        <div class="lb"><span style="background-color: #fdae61"></span>5</div>
+        <div class="lb"><span style="background-color: #fee090"></span>10</div>
+        <div class="lb"><span style="background-color: #e0f3f8"></span>20</div>
+        <div class="lb"><span style="background-color: #abd9e9"></span>40</div>
+        <div class="lb"><span style="background-color: #74add1"></span>60</div>
+        <div class="lb"><span style="background-color: #4575b4"></span>100</div>
+        <div class="lb"><span style="background-color: #313695"></span>2000</div>
     </div>
 
     </div>
@@ -308,14 +308,14 @@
               'fill-color': ["step", ["get", layerID ],
                 "#a50026", 0,
                 "#d73027", 0.1,
-                "#f46d43", 0.5,
-                "#fdae61", 10,
-                "#fee090", 20,
-                "#e0f3f8", 50,
-                "#abd9e9", 100,
-                "#74add1", 200,
-                "#4575b4", 500,
-                "#313695", 7500,
+                "#f46d43", 2,
+                "#fdae61", 5,
+                "#fee090", 10,
+                "#e0f3f8", 20,
+                "#abd9e9", 40,
+                "#74add1", 60,
+                "#4575b4", 100,
+                "#313695", 2000,
                 "#000000"],
               'fill-opacity': 0.7,
               'fill-outline-color': 'rgba(0, 0, 0, 0.2)'
@@ -339,6 +339,8 @@
 	  }
 
 	  md = document.getElementById("select_mode").value;
+
+	  document.getElementById("modal-title").innerHTML = "<h2> LSOA: " + sub.code +"</h2>";
 
 	  var weekday_Morning_Peak = [
     sub['tph_weekday_Morning_Peak_2004_' + md],

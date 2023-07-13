@@ -2,7 +2,7 @@ library(UK2GTFS)
 library(sf)
 sf_use_s2(FALSE)
 
-lamode = TRUE
+lamode = FALSE
 
 source("R/stops_per_week_functions.R")
 if(lamode){
