@@ -2,13 +2,13 @@ library(tmap)
 library(ggplot2)
 library(dplyr)
 
-lamode = FALSE
+lamode = TRUE
 
 zone = readRDS("data/GB_LSOA_2011_super_generalised.Rds")
 zone_service <- list()
 
-#for(i in c(2004:2011,2014:2023)){
-for(i in c(2004:2006)){
+for(i in c(2004:2011,2014:2023)){
+#for(i in c(2004:2006)){
   if(lamode){
     sub = readRDS(paste0("data/trips_per_la_by_mode_",i,".Rds"))
   } else {
@@ -98,9 +98,9 @@ zone_service$tph_weekday_Night <- (zone_service$tph_Mon_Night +
 zone_service <- zone_service[,c("zone_id",
                                 "route_type",
                                 "year",
-                                "routes_Morning_Peak",
+                                "routes_Morning Peak",
                                 "routes_Midday",
-                                "routes_Afternoon_Peak",
+                                "routes_Afternoon Peak",
                                 "routes_Evening",
                                 "routes_Night",
                                 "runs_weekday_Morning_Peak",
@@ -151,7 +151,7 @@ zone_service$tph_daytime_avg =  (zone_service$tph_weekday_Morning_Peak * 5 * 4 +
 
 
 if(lamode){
-  zone_service_out <- zone_service[,c(1:2,33,3:32)]
+  #zone_service_out <- zone_service[,c(1:2,33,3:32)]
   saveRDS(zone_service_out, "data/trips_per_la_by_mode_2004_2023.Rds")
 } else {
   # Output
@@ -160,7 +160,7 @@ if(lamode){
   la = la[!duplicated(la$LSOA11CD),]
 
   zone_service_out <- left_join(zone_service, la, by = c("zone_id" = "LSOA11CD"))
-  zone_service_out <- zone_service_out[,c(1:2,33:35,3:32)]
+  #zone_service_out <- zone_service_out[,c(1:2,33:35,3:32)]
 
   zone_service_out <- zone_service_out[order(zone_service_out$zone_id, zone_service_out$route_type, zone_service_out$year),]
   saveRDS(zone_service_out, "data/trips_per_lsoa_by_mode_2004_2023.Rds")
