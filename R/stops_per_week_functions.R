@@ -295,22 +295,22 @@ gtfs_trips_per_zone <- function(gtfs,
   # +35 for any service in GTFS that runs past midnight (note that some may arrive following morning but a counted as evening)
   message("Stops that run past midnight are recorded in Night regardless of the time")
   stop_times$time_bands <- cut(lubridate::hour(stop_times$departure_time),
-                               breaks = c(-1, 6, 10, 15, 18, 20, Inf),
+                               breaks = c(-1, 6, 10, 15, 18, 22, Inf),
                                labels = c("Night", "Morning Peak", "Midday","Afternoon Peak","Evening","Night"))
   gc()
   if(by_mode){
-    stop_times <- stop_times[,c(c("trip_id","stop_id","time_bands","route_type",
+    stop_times <- stop_times[,c(c("trip_id","route_id","stop_id","time_bands","route_type",
                                   "runs_Mon","runs_Tue","runs_Wed","runs_Thu",
                                   "runs_Fri","runs_Sat","runs_Sun"))]
   } else {
-    stop_times <- stop_times[,c(c("trip_id","stop_id","time_bands",
+    stop_times <- stop_times[,c(c("trip_id","route_id","stop_id","time_bands",
                                   "runs_Mon","runs_Tue","runs_Wed","runs_Thu",
                                   "runs_Fri","runs_Sat","runs_Sun"))]
   }
 
   stop_times = stop_times[!is.na(stop_times$time_bands),]
 
-  stop_times <- dplyr::left_join(stop_times, stops_zids, by = "stop_id", multiple = "all")
+  stop_times <- dplyr::left_join(stop_times, stops_zids, by = "stop_id", relationship = "many-to-many")
   rm(stops_zids)
   stop_times <- sf::st_drop_geometry(stop_times)
   stop_times$geometry <- NULL
@@ -353,7 +353,7 @@ internal_trips_per_zone <- function(x, by_mode = TRUE, days_tot){
   x$tot_Sun = days_tot$Freq[days_tot$days_tot == "Sun"]
 
   timebands <- data.frame(time_bands =  c("Night", "Morning Peak", "Midday","Afternoon Peak","Evening"),
-                          band_hours = c(10, 4, 5,3,2))
+                          band_hours = c(8, 4, 5,3,4))
   x = dplyr::left_join(x, timebands, "time_bands")
 
 
@@ -381,13 +381,15 @@ internal_trips_per_zone <- function(x, by_mode = TRUE, days_tot){
                           tph_Thu = sum(runs_Thu)/ max(tot_Thu * band_hours),
                           tph_Fri = sum(runs_Fri)/ max(tot_Fri * band_hours),
                           tph_Sat = sum(runs_Sat)/ max(tot_Sat * band_hours),
-                          tph_Sun = sum(runs_Sun)/ max(tot_Sun * band_hours))
+                          tph_Sun = sum(runs_Sun)/ max(tot_Sun * band_hours),
+                          routes = length(unique(route_id))
+                          )
   })
 
   if(by_mode){
     x <- tidyr::pivot_wider(x,
                             id_cols = c("zone_id","route_type"),
-                            values_from = c(runs_Mon:tph_Sun),
+                            values_from = c(runs_Mon:routes),
                             names_from = c(time_bands)
     )
   } else {

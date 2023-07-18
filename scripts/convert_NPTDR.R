@@ -1,9 +1,12 @@
-remotes::install_github("ITSleeds/UK2GTFS")
+remotes::install_github("ITSleeds/UK2GTFS", upgrade = "never")
 library(UK2GTFS)
 
 base_path = "D:/OneDrive - University of Leeds/Data/UK2GTFS/NPTDR"
 
-for(j in 2004:2011){
+# 2006 is crashing
+# School term dates are illistative and not exact
+# School exclusions - term time only 4%
+for(j in 2006){
 
   year = paste0("October-",j,".zip")
   message(year)
@@ -22,7 +25,8 @@ for(j in 2004:2011){
   gtfs_validate_internal(gtfs)
 
   gtfs_write(gtfs, folder = "D:/OneDrive - University of Leeds/Data/UK2GTFS/NPTDR/GTFS/", name = paste0("NPTDR_", j))
-
+  rm(gtfs)
+  gc()
 
 
 }

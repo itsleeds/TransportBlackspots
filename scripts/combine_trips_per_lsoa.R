@@ -2,12 +2,13 @@ library(tmap)
 library(ggplot2)
 library(dplyr)
 
-lamode = TRUE
+lamode = FALSE
 
 zone = readRDS("data/GB_LSOA_2011_super_generalised.Rds")
 zone_service <- list()
 
-for(i in c(2004:2011,2014:2023)){
+#for(i in c(2004:2011,2014:2023)){
+for(i in c(2004:2006)){
   if(lamode){
     sub = readRDS(paste0("data/trips_per_la_by_mode_",i,".Rds"))
   } else {
@@ -96,38 +97,58 @@ zone_service$tph_weekday_Night <- (zone_service$tph_Mon_Night +
 
 zone_service <- zone_service[,c("zone_id",
                                 "route_type",
-                                "runs_weekday_Night",
+                                "year",
+                                "routes_Morning_Peak",
+                                "routes_Midday",
+                                "routes_Afternoon_Peak",
+                                "routes_Evening",
+                                "routes_Night",
                                 "runs_weekday_Morning_Peak",
-                                "runs_weekday_Afternoon_Peak",
                                 "runs_weekday_Midday",
+                                "runs_weekday_Afternoon_Peak",
                                 "runs_weekday_Evening",
-                                "runs_Sat_Night",
+                                "runs_weekday_Night",
                                 "runs_Sat_Morning Peak",
                                 "runs_Sat_Midday",
                                 "runs_Sat_Afternoon Peak",
                                 "runs_Sat_Evening",
-                                "runs_Sun_Night",
+                                "runs_Sat_Night",
                                 "runs_Sun_Morning Peak",
                                 "runs_Sun_Midday",
                                 "runs_Sun_Afternoon Peak",
                                 "runs_Sun_Evening",
-                                "tph_weekday_Night",
+                                "runs_Sun_Night",
                                 "tph_weekday_Morning_Peak",
-                                "tph_weekday_Afternoon_Peak",
                                 "tph_weekday_Midday",
+                                "tph_weekday_Afternoon_Peak",
                                 "tph_weekday_Evening",
-                                "tph_Sat_Night",
+                                "tph_weekday_Night",
                                 "tph_Sat_Morning Peak",
                                 "tph_Sat_Midday",
                                 "tph_Sat_Afternoon Peak",
                                 "tph_Sat_Evening",
-                                "tph_Sun_Night",
+                                "tph_Sat_Night",
                                 "tph_Sun_Morning Peak",
                                 "tph_Sun_Midday",
                                 "tph_Sun_Afternoon Peak",
                                 "tph_Sun_Evening",
-                                "year")]
+                                "tph_Sun_Night")]
 names(zone_service) <- gsub(" ","_",names(zone_service))
+
+zone_service$tph_daytime_avg =  (zone_service$tph_weekday_Morning_Peak * 5 * 4 +
+                                zone_service$tph_weekday_Midday * 5 * 5 +
+                                zone_service$tph_weekday_Afternoon_Peak * 5 * 3 +
+                                zone_service$tph_weekday_Evening * 5 * 4 +
+                                zone_service$tph_Sat_Morning_Peak * 4 +
+                                zone_service$tph_Sat_Midday * 5 +
+                                zone_service$tph_Sat_Afternoon_Peak  * 3 +
+                                zone_service$tph_Sat_Evening * 4 +
+                                zone_service$tph_Sun_Morning_Peak  * 4 +
+                                zone_service$tph_Sun_Midday * 5 +
+                                zone_service$tph_Sun_Afternoon_Peak * 3 +
+                                zone_service$tph_Sun_Evening * 4) / (7 * 16)
+
+
 
 if(lamode){
   zone_service_out <- zone_service[,c(1:2,33,3:32)]

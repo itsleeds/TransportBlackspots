@@ -78,7 +78,7 @@ ggplot(all_bus, aes(x = tph_2018, y = carpp_2018, color = SOAC11NM)) +
   scale_color_manual(values=cols) +
   theme(legend.text = element_text(size=5)) +
   theme(legend.key.size = unit(4, 'mm')) +
-  scale_x_continuous(expand = c(0, 0), limits = c(0,2500)) +
+  scale_x_continuous(expand = c(0, 0), limits = c(0,500)) +
   scale_y_continuous(expand = c(0, 0), limits = c(0,1.5))
 ggsave("plots/car_ownership_vs_pt_frequecy.png", dpi = 600)
 

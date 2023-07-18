@@ -6,8 +6,14 @@ naptan = get_naptan()
 cal = get_bank_holidays()
 skip_done = TRUE
 
-for(j in 2014:2019){
+# 2023-07-01 10:14:53 NE 20151006.zip
+# All files converted
+# Replacing 0 stop locations with values from UK2GTFS
+# Crash during time interpolation fail at 17%
+# 2 nodes produced errors; first error: conversion of times failed for tripID: 16110
 
+for(j in 2016:2019){
+  gc()
   year = paste0(j," Oct")
 
   if(!dir.exists(file.path(base_path,"GTFS",year))){
@@ -39,6 +45,19 @@ for(j in 2014:2019){
                                force_merge = TRUE,
                                try_mode = FALSE)
       gtfs = gtfs_clean(gtfs)
+
+      # Fix known errors
+      naptan_replace <- UK2GTFS::naptan_replace
+      naptan_replace <- naptan_replace[naptan_replace$stop_id %in% gtfs$stops$stop_id,]
+      message("Replacing ",nrow(naptan_replace)," stop locations with values from UK2GTFS")
+      gtfs$stops <- gtfs$stops[!gtfs$stops$stop_id %in% naptan_replace$stop_id,]
+      gtfs$stops <- rbind(gtfs$stops, naptan_replace)
+
+      gtfs <- gtfs_interpolate_times(gtfs, ncores = 30)
+      gtfs_validate_internal(gtfs)
+
+
+
       gtfs_write(gtfs,
                  folder = file.path(base_path,"GTFS",year),
                  name = gsub(".zip","",nm))
@@ -72,7 +91,20 @@ for(j in 2014:2019){
                                scotland = ifelse(scot,"yes","no"),
                                force_merge = TRUE,
                                try_mode = FALSE)
+
       gtfs = gtfs_clean(gtfs)
+
+      # Fix known errors
+      naptan_replace <- UK2GTFS::naptan_replace
+      naptan_replace <- naptan_replace[naptan_replace$stop_id %in% gtfs$stops$stop_id,]
+      message("Replacing ",nrow(naptan_replace)," stop locations with values from UK2GTFS")
+      gtfs$stops <- gtfs$stops[!gtfs$stops$stop_id %in% naptan_replace$stop_id,]
+      gtfs$stops <- rbind(gtfs$stops, naptan_replace)
+
+      gtfs <- gtfs_interpolate_times(gtfs, ncores = 30)
+      gtfs_validate_internal(gtfs)
+
+
       gtfs_write(gtfs,
                  folder = file.path(base_path,"GTFS",year),
                  name = gsub(".zip","",nm))

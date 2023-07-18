@@ -18,7 +18,7 @@ names(lsoa_bustrips_2004_2023)
 lsoa_trips_2004_2022 <- join_metro_by_lup(lsoa_trips_2004_2022)
 
 metro_trips_data_summary <- metro_trips_analysis(lsoa_trips_2004_2022)
-region_trips_data_summary <- region_trips_analysis(lsoa_trips_2004_2022)
+region_trips_data_summary <- region_trips_analysis(lsoa_trips_2004_2023)
 
 # METROPOLITAN AREA -------------------------------------------------------
 

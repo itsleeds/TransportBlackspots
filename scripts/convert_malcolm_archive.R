@@ -9,9 +9,8 @@ skip_done = TRUE
 if(!dir.exists(file.path(base_path,"GTFS"))){dir.create(file.path(base_path,"GTFS"))}
 
 # dates
-#dates = c("20200701","20211012","20221102")
-#dates = c("20180515","20191008")
-dates = c("20230503")
+dates = c("20180515","20191008","20200701","20211012","20221102", "20230503")
+
 
 for(i in seq_along(dates)){
   message(dates[i])
@@ -42,6 +41,16 @@ for(i in seq_along(dates)){
                               try_mode = FALSE,
                               force_merge = TRUE)
     gtfs <- gtfs_clean(gtfs)
+
+    # Fix known errors
+    naptan_replace <- UK2GTFS::naptan_replace
+    naptan_replace <- naptan_replace[naptan_replace$stop_id %in% gtfs$stops$stop_id,]
+    message("Replacing ",nrow(naptan_replace)," stop locations with values from UK2GTFS")
+    gtfs$stops <- gtfs$stops[!gtfs$stops$stop_id %in% naptan_replace$stop_id,]
+    gtfs$stops <- rbind(gtfs$stops, naptan_replace)
+
+    gtfs <- gtfs_interpolate_times(gtfs, ncores = 30)
+    gtfs_validate_internal(gtfs)
 
 
     gtfs_write(gtfs,

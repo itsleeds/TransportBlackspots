@@ -1,12 +1,13 @@
 remotes::install_github("ITSleeds/UK2GTFS", upgrade = "never")
 library(UK2GTFS)
 source("R/stops_per_week_functions.R")
-base_path = "D:/OneDrive - University of Leeds/Data/UK2GTFS/TransXChange/GTFS/"
+base_path = "D:/OneDrive - University of Leeds/Data/UK2GTFS/TransXChange/GTFS"
 
 yrs = list.dirs(base_path)
 yrs = yrs[yrs != base_path]
-yrs = yrs[!grepl("20201102",yrs)]
-yrs = yrs[6]
+yrs = yrs[!grepl("v1",yrs)]
+#yrs = yrs[!grepl("20201102",yrs)]
+#yrs = yrs[6]
 
 
 for(j in seq_along(yrs)){

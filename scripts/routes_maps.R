@@ -3,11 +3,11 @@ library(UK2GTFS)
 library(sf)
 sf_use_s2(FALSE)
 
-source("../UK2GTFS/R/gtfs_to_sf.R")
+#source("../UK2GTFS/R/gtfs_to_sf.R")
 #path = "C:/Users/malco/OneDrive - University of Leeds/Data/UK2GTFS"
 path = "D:/OneDrive - University of Leeds/Data/UK2GTFS/"
-for(i in c(2019:2023)){
-  #for(i in c(2008:2011,2019:2023)){
+#for(i in c(2019:2023)){
+for(i in c(2004:2011,2014:2023)){
   message(i)
   if(i < 2012){
     gtfs <- gtfs_read(file.path(path,paste0("NPTDR/GTFS/NPTDR_",i,".zip")))
