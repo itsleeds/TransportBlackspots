@@ -72,8 +72,8 @@ all_bus$SOAC11NM = factor(all_bus$SOAC11NM, levels = names(cols))
 ggplot(all_bus, aes(x = tph_2018, y = carpp_2018, color = SOAC11NM)) +
   geom_point(size=0.1, shape=15) +
   geom_smooth(data = all_bus, aes(x = tph_2018, y = carpp_2018, color = NULL), show.legend = FALSE) +
-  ylab("Cars per person 2018") +
-  xlab("Bus trips accessible per hour during AM peak 2018") +
+  ylab("Cars per person (2018)") +
+  xlab("Average bus trips accessible per hour 6am-10pm (2018)") +
   guides(color=guide_legend(title="Area classification", ncol =1, override.aes = list(size=2))) +
   scale_color_manual(values=cols) +
   theme(legend.text = element_text(size=5)) +
@@ -81,6 +81,25 @@ ggplot(all_bus, aes(x = tph_2018, y = carpp_2018, color = SOAC11NM)) +
   scale_x_continuous(expand = c(0, 0), limits = c(0,500)) +
   scale_y_continuous(expand = c(0, 0), limits = c(0,1.5))
 ggsave("plots/car_ownership_vs_pt_frequecy.png", dpi = 600)
+
+library(ggalt)
+
+ggplot(all_bus, aes(x = tph_2018, y = carpp_2018, color = SOAC11NM)) +
+  geom_point(size=0.1, shape=15) +
+  geom_encircle(aes(group = SOAC11NM, fill = SOAC11NM), alpha = 0.4) +
+  geom_smooth(data = all_bus, aes(x = tph_2018, y = carpp_2018, color = NULL), show.legend = FALSE) +
+  ylab("Cars per person (2018)") +
+  xlab("Average bus trips accessible per hour 6am-10pm (2018)") +
+  guides(color=guide_legend(title="Area classification", ncol =1, override.aes = list(size=2))) +
+  scale_color_manual(values=cols) +
+  theme(legend.text = element_text(size=5)) +
+  theme(legend.key.size = unit(4, 'mm')) +
+  scale_x_continuous(expand = c(0, 0), limits = c(0,200)) +
+  scale_y_continuous(expand = c(0, 0), limits = c(0,1.5))
+
+
+
+
 
 foo = all_bus[all_bus$carpp_2018 < 0.1 & all_bus$tph_2018 < 100,]
 

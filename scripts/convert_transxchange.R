@@ -12,7 +12,7 @@ skip_done = TRUE
 # Crash during time interpolation fail at 17%
 # 2 nodes produced errors; first error: conversion of times failed for tripID: 16110
 
-for(j in 2016:2019){
+for(j in 2015){
   gc()
   year = paste0(j," Oct")
 
@@ -23,7 +23,7 @@ for(j in 2016:2019){
   if(j < 2017){
     zips = list.files(file.path(base_path, year), pattern = ".zip", full.names = TRUE)
 
-    for(i in 1:length(zips)){
+    for(i in 1:length(zips)){ # Skipping bug for now
       scot = grepl("S 2",zips[i])
       nm = strsplit(zips[i], "/")[[1]]
       nm = nm[length(nm)]
@@ -38,7 +38,7 @@ for(j in 2016:2019){
       message(Sys.time()," ",nm)
       gtfs = transxchange2gtfs(zips[i],
                                naptan = naptan,
-                               ncores = 30,
+                               ncores = 20,
                                silent = TRUE,
                                cal = cal,
                                scotland = ifelse(scot,"yes","no"),
