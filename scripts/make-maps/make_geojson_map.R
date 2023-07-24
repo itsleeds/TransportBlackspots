@@ -22,7 +22,7 @@ st_precision(lsoa) <- 100000
 st_write(lsoa, "data/lsoa_wide.geojson", delete_dsn = TRUE)
 
 
-
+stop("End of R Code")
 
 
 ## Bash
