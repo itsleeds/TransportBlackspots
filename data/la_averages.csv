@@ -1,0 +1,328 @@
+LAD17NM,cars_percap_2018
+Tower Hamlets,0.141
+Hackney,0.153
+Islington,0.153
+Camden,0.165
+Southwark,0.184
+Lambeth,0.199
+Westminster,0.199
+Newham,0.207
+Hammersmith and Fulham,0.235
+Haringey,0.235
+Isles of Scilly,0.238
+Wandsworth,0.247
+Lewisham,0.258
+Kensington and Chelsea,0.265
+Greenwich,0.284
+Brent,0.287
+Waltham Forest,0.29
+Manchester,0.299
+Barking and Dagenham,0.304
+City of London,0.305
+Nottingham,0.306
+Liverpool,0.317
+Brighton and Hove,0.333
+Newcastle upon Tyne,0.335
+Ealing,0.345
+Oxford,0.349
+Cambridge,0.352
+Merton,0.354
+Redbridge,0.355
+Hounslow,0.364
+Enfield,0.365
+"Kingston upon Hull, City of",0.365
+Barnet,0.37
+Salford,0.374
+Croydon,0.378
+Norwich,0.381
+Knowsley,0.387
+Bradford,0.388
+Gateshead,0.389
+Kingston upon Thames,0.39
+Middlesbrough,0.39
+Sheffield,0.39
+Richmond upon Thames,0.394
+South Tyneside,0.397
+Sandwell,0.398
+Coventry,0.399
+Southampton,0.399
+Oldham,0.401
+Blackburn with Darwen,0.404
+Blackpool,0.405
+Sunderland,0.406
+"Bristol, City of",0.408
+Harrow,0.409
+Lincoln,0.413
+Luton,0.414
+Leicester,0.417
+Rochdale,0.418
+Hastings,0.419
+Reading,0.419
+Wolverhampton,0.422
+Burnley,0.423
+Hartlepool,0.424
+York,0.427
+Preston,0.428
+Bexley,0.433
+Sutton,0.433
+North Tyneside,0.434
+Bolton,0.436
+Plymouth,0.436
+Calderdale,0.437
+Walsall,0.438
+North East Lincolnshire,0.439
+Stoke-on-Trent,0.439
+Tameside,0.439
+Kirklees,0.441
+Barrow-in-Furness,0.442
+Sefton,0.444
+Hyndburn,0.449
+Lancaster,0.45
+Pendle,0.451
+Canterbury,0.452
+Southend-on-Sea,0.452
+Havering,0.454
+Eastbourne,0.456
+Thanet,0.456
+Bromley,0.457
+Bournemouth,0.459
+Ipswich,0.459
+Scarborough,0.459
+County Durham,0.46
+Gosport,0.46
+Barnsley,0.463
+Crawley,0.468
+Wigan,0.468
+Wirral,0.468
+Corby,0.47
+Rotherham,0.47
+Stockton-on-Tees,0.47
+Wakefield,0.47
+Redcar and Cleveland,0.471
+Hillingdon,0.473
+St. Helens,0.475
+Ashfield,0.476
+Darlington,0.477
+Great Yarmouth,0.479
+Derby,0.48
+Halton,0.48
+Trafford,0.48
+Broxtowe,0.481
+Carlisle,0.481
+Stevenage,0.482
+Mansfield,0.484
+Doncaster,0.485
+Medway,0.485
+Weymouth and Portland,0.485
+Gravesham,0.486
+Harlow,0.486
+Welwyn Hatfield,0.487
+Adur,0.488
+Rossendale,0.488
+England,0.489
+Dover,0.489
+Newcastle-under-Lyme,0.489
+Lewes,0.491
+Thurrock,0.491
+Worthing,0.491
+Gedling,0.492
+Shepway,0.492
+Cheltenham,0.494
+Torbay,0.494
+Dudley,0.495
+Telford and Wrekin,0.495
+Basildon,0.498
+Colchester,0.5
+Bath and North East Somerset,0.501
+Charnwood,0.502
+Northampton,0.503
+Northumberland,0.503
+Stockport,0.503
+Waveney,0.508
+Isle of Wight,0.509
+Swale,0.509
+Copeland,0.51
+Dartford,0.51
+Bolsover,0.511
+Tamworth,0.512
+High Peak,0.513
+North Lincolnshire,0.513
+Portsmouth,0.514
+Wyre,0.514
+Epsom and Ewell,0.515
+Leeds,0.515
+North Devon,0.516
+Boston,0.517
+Nuneaton and Bedworth,0.518
+West Lancashire,0.518
+Erewash,0.519
+Allerdale,0.52
+Bassetlaw,0.52
+Cannock Chase,0.52
+Havant,0.52
+Rushcliffe,0.52
+East Staffordshire,0.524
+Tunbridge Wells,0.524
+Tendring,0.526
+Warrington,0.527
+Cornwall,0.528
+Chorley,0.53
+Newark and Sherwood,0.53
+Redditch,0.531
+Broxbourne,0.532
+Wellingborough,0.532
+Craven,0.535
+St Albans,0.536
+South Ribble,0.537
+St Edmundsbury,0.537
+Taunton Deane,0.537
+Hertsmere,0.539
+Richmondshire,0.539
+Amber Valley,0.54
+East Lindsey,0.54
+East Riding of Yorkshire,0.54
+Stafford,0.54
+Dacorum,0.541
+Chelmsford,0.543
+Warwick,0.543
+North Hertfordshire,0.544
+Oadby and Wigston,0.544
+Runnymede,0.544
+Castle Point,0.545
+Fenland,0.545
+Maidstone,0.545
+South Derbyshire,0.545
+North East Derbyshire,0.546
+Poole,0.546
+Arun,0.547
+Epping Forest,0.547
+Rugby,0.547
+Cheshire West and Chester,0.548
+South Kesteven,0.549
+Rochford,0.55
+Shropshire,0.55
+Ashford,0.551
+Fylde,0.551
+Winchester,0.551
+Guildford,0.552
+Selby,0.552
+Three Rivers,0.552
+Chesterfield,0.553
+Torridge,0.553
+Vale of White Horse,0.554
+West Lindsey,0.554
+Braintree,0.555
+South Lakeland,0.555
+King's Lynn and West Norfolk,0.556
+East Hertfordshire,0.557
+Rother,0.557
+Sedgemoor,0.557
+North Norfolk,0.558
+Spelthorne,0.558
+North West Leicestershire,0.559
+Staffordshire Moorlands,0.559
+Woking,0.559
+Aylesbury Vale,0.56
+Blaby,0.56
+"Herefordshire, County of",0.56
+East Cambridgeshire,0.561
+Harrogate,0.561
+Tonbridge and Malling,0.563
+Christchurch,0.564
+Mid Devon,0.564
+Basingstoke and Deane,0.565
+Central Bedfordshire,0.566
+South Staffordshire,0.566
+East Northamptonshire,0.567
+Eastleigh,0.567
+Hinckley and Bosworth,0.567
+Mid Sussex,0.567
+Reigate and Banstead,0.567
+Teignbridge,0.567
+Wyre Forest,0.567
+East Devon,0.568
+Ryedale,0.568
+South Holland,0.568
+Cheshire East,0.569
+Mendip,0.569
+Breckland,0.57
+Exeter,0.57
+North Kesteven,0.57
+North Somerset,0.57
+Bury,0.571
+Fareham,0.571
+Melton,0.572
+Ribble Valley,0.572
+Purbeck,0.574
+Rutland,0.574
+Windsor and Maidenhead,0.574
+Eden,0.575
+Lichfield,0.575
+Worcester,0.576
+Tewkesbury,0.577
+Hambleton,0.578
+West Somerset,0.578
+Kettering,0.579
+Wiltshire,0.58
+Sevenoaks,0.581
+Harborough,0.582
+South Cambridgeshire,0.582
+West Dorset,0.582
+Derbyshire Dales,0.586
+Babergh,0.587
+Forest Heath,0.587
+Wokingham,0.587
+North Warwickshire,0.588
+West Devon,0.588
+West Oxfordshire,0.588
+Wycombe,0.59
+Broadland,0.591
+Suffolk Coastal,0.592
+Tandridge,0.592
+Chichester,0.594
+Forest of Dean,0.594
+South Hams,0.594
+South Somerset,0.594
+Huntingdonshire,0.597
+Daventry,0.598
+Elmbridge,0.598
+Bromsgrove,0.599
+South Norfolk,0.599
+Bedford,0.601
+South Oxfordshire,0.601
+Test Valley,0.603
+Stroud,0.604
+Waverley,0.604
+Wealden,0.605
+North Dorset,0.606
+New Forest,0.609
+Horsham,0.61
+Malvern Hills,0.612
+Mid Suffolk,0.612
+Chiltern,0.614
+Maldon,0.614
+Birmingham,0.616
+Uttlesford,0.618
+South Bucks,0.626
+Surrey Heath,0.627
+East Hampshire,0.629
+Hart,0.629
+South Northamptonshire,0.629
+Mole Valley,0.63
+Cotswold,0.639
+West Berkshire,0.642
+East Dorset,0.651
+Gloucester,0.664
+Stratford-on-Avon,0.667
+Solihull,0.678
+Brentwood,0.679
+Watford,0.682
+Wychavon,0.685
+Bracknell Forest,0.702
+Cherwell,0.717
+South Gloucestershire,0.788
+Rushmoor,0.982
+Peterborough,1.06
+Slough,1.08
+Swindon,1.22
+Milton Keynes,1.53
