@@ -402,7 +402,7 @@ add_lacode_region <- function(la_trend_data) {
   la_trend_data <- left_join(la_trend_data, oslaua_to_rgn, by = "local_authority_name")
 
   # indentity/label inner and outer london
-  la_trend_data <- indentify_inner_outer_london(la_trend_data)
+  la_trend_data <- identify_inner_outer_london(la_trend_data)
 
   # reorder columns
   la_trend_data <- la_trend_data %>%
@@ -623,11 +623,13 @@ periods <- c(#"runs_weekday_Night",
 # LSOA trend data ---------------------------------------------------------
 
 lsoa_trips_trend_for_bivariate_map <- function(lsoa_trips_trend,
-                                               a_threshold = 0,
-                                               b_threshold = -0.3,
-                                               a_label = "Same or improved",
-                                               b_label = "Reduced slightly",
-                                               c_label = "Reduced significantly") {
+                                               threshold_c,
+                                               threshold_b,
+                                               threshold_3,
+                                               threshold_2,
+                                               label_1,
+                                               label_2,
+                                               label_3) {
 
 
   routes_per_lsoa_2008_2023 <- read_rds("data/route-stops/routes_per_lsoa_2008_2023.rds")
@@ -647,15 +649,27 @@ lsoa_trips_trend_for_bivariate_map <- function(lsoa_trips_trend,
   # over 4 = good
   # 2 - 4 = okay
   # less than 2 poor
-  threshold_1 = 4
-  threshold_2 = 2
+  #lsoa_trips_trend <- lsoa_trips_trend %>%
+  #  mutate(service_frequency_2008 = case_when(tph_per_route_2008 < threshold_c ~ "C",
+  #                                            between(tph_per_route_2008, threshold_b, threshold_c) ~ "B",
+  #                                            tph_per_route_2008 > threshold_b ~ "A"),
+  #         service_frequency_2008_label = case_when(tph_per_route_2008 < threshold_c ~ "Poor",
+  #                                                  between(tph_per_route_2008, threshold_b, threshold_c) ~ "OK",
+  #                                                  tph_per_route_2008 > threshold_b ~ "Good"))
+
+  # trips per hour assessment
+  # less than 12 = poor (less than one every 5 mins)
+  # 12 - 60 = okay
+  # more than 60 = good (more than one every min)
   lsoa_trips_trend <- lsoa_trips_trend %>%
-    mutate(service_frequency_2008 = case_when(tph_per_route_2008 > threshold_1 ~ "1",
-                                              between(tph_per_route_2008, threshold_2, threshold_1) ~ "2",
-                                              tph_per_route_2008 < threshold_2 ~ "3"),
-           service_frequency_2008_label = case_when(tph_per_route_2008 > threshold_1 ~ "Good",
-                                                    between(tph_per_route_2008, threshold_2, threshold_1) ~ "OK",
-                                                    tph_per_route_2008 < threshold_2 ~ "Poor"))
+    mutate(service_frequency_2008 = case_when(trips_2006_08 > threshold_c ~ "C",
+                                              between(trips_2006_08, threshold_b, threshold_c) ~ "B",
+                                              trips_2006_08 < threshold_b ~ "A"),
+           service_frequency_2008_label = case_when(trips_2006_08 > threshold_c ~ "Good",
+                                                    between(trips_2006_08, threshold_b, threshold_c) ~ "OK",
+                                                    trips_2006_08 < threshold_b ~ "Poor"))
+
+
   # check: table(lsoa_trips_trend$service_frequency_2008)
 
   #categorise change in service as follow:
@@ -669,12 +683,12 @@ lsoa_trips_trend_for_bivariate_map <- function(lsoa_trips_trend,
   # below -0.3 reduced significantly
 
   lsoa_trips_trend <- lsoa_trips_trend %>%
-    mutate(service_reduction_2008_23 = case_when(trips_change_2008_2023_pct >= a_threshold ~ "A",
-                                                 between(trips_change_2008_2023_pct, b_threshold, a_threshold) ~ "B",
-                                                 trips_change_2008_2023_pct < b_threshold ~ "C"),
-           service_reduction_2008_23_label = case_when(trips_change_2008_2023_pct >= a_threshold ~ a_label,
-                                                       between(trips_change_2008_2023_pct, b_threshold, a_threshold) ~ b_label,
-                                                       trips_change_2008_2023_pct < b_threshold ~ c_label))
+    mutate(service_reduction_2008_23 = case_when(trips_change_2008_2023_pct >= threshold_3 ~ "3",
+                                                 between(trips_change_2008_2023_pct, threshold_2, threshold_3) ~ "2",
+                                                 trips_change_2008_2023_pct < threshold_2 ~ "1"),
+           service_reduction_2008_23_label = case_when(trips_change_2008_2023_pct >= threshold_3 ~ label_3,
+                                                       between(trips_change_2008_2023_pct, threshold_2, threshold_3) ~ label_2,
+                                                       trips_change_2008_2023_pct < threshold_2 ~ label_1))
 
   # check: table(lsoa_trips_trend$service_reduction_2008_23)
   table(lsoa_trips_trend$service_frequency_2008,
@@ -683,7 +697,7 @@ lsoa_trips_trend_for_bivariate_map <- function(lsoa_trips_trend,
   lsoa_trips_bivariate <- lsoa_trips_trend %>%
     filter(!is.na(service_reduction_2008_23)) %>%
     filter(!is.na(service_frequency_2008)) %>%
-    unite(trips_bi_variate, service_reduction_2008_23, service_frequency_2008, sep = "", remove = FALSE) %>%
+    unite(trips_bi_variate, service_frequency_2008, service_reduction_2008_23, sep = "", remove = FALSE) %>%
     unite(trips_bi_variate_label, service_frequency_2008_label, service_reduction_2008_23_label, sep = ": ", remove = FALSE) %>%
     mutate(trips_bi_variate = as.factor(trips_bi_variate),
            trips_bi_variate_label = as.factor(trips_bi_variate_label)) %>%
@@ -694,21 +708,27 @@ lsoa_trips_trend_for_bivariate_map <- function(lsoa_trips_trend,
               service_frequency_2008_label,
               service_reduction_2008_23,
               service_reduction_2008_23_label,
+              tph_per_route_2008,
+              #tph_per_route_2019,
+              #tph_per_route_2022,
+              tph_per_route_2023,
               trips_2006_08,
               trips_2023,
               trips_change_2008_2023_pct = round(trips_change_2008_2023_pct * 100, 1))
 
   # Sort levels out for bivariate_label field (so graph plots with right colour scheme)
   lsoa_trips_bivariate$trips_bi_variate_label <- factor(lsoa_trips_bivariate$trips_bi_variate_label,
-                                                        levels =  c(paste("Good", a_label, sep = ": "),
-                                                                    paste("OK", a_label, sep = ": "),
-                                                                    paste("Poor", a_label, sep = ": "),
-                                                                    paste("Good", b_label, sep = ": "),
-                                                                    paste("OK", b_label, sep = ": "),
-                                                                    paste("Poor", b_label, sep = ": "),
-                                                                    paste("Good", c_label, sep = ": "),
-                                                                    paste("OK", c_label, sep = ": "),
-                                                                    paste("Poor", c_label, sep = ": ")))
+                                                        levels =  c(
+                                                          paste("Poor", label_1, sep = ": "),
+                                                          paste("OK", label_1, sep = ": "),
+                                                          paste("Good", label_1, sep = ": "),
+                                                          paste("Poor", label_2, sep = ": "),
+                                                          paste("OK", label_2, sep = ": "),
+                                                          paste("Good", label_2, sep = ": "),
+                                                          paste("Poor", label_3, sep = ": "),
+                                                          paste("OK", label_3, sep = ": "),
+                                                          paste("Good", label_3, sep = ": ")
+                                                          ))
 
   lsoa_boundaries <- readRDS("../gis-data/boundaries/lsoa/GB_LSOA_2011_super_generalised.Rds")
   lsoa_boundaries <- rename(lsoa_boundaries, lsoa11 = code)
@@ -717,15 +737,23 @@ lsoa_trips_trend_for_bivariate_map <- function(lsoa_trips_trend,
 
 }
 
-#lsoa_trend_data <- make_lsoa_trend_data(periods)
+lsoa_trend_data <- make_lsoa_trend_data(periods)
+saveRDS(object = lsoa_trend_data,
+        file = "data/lsoa_bustrip_trends_2008_2023.rds")
 lsoa_trend_data <- readRDS("data/lsoa_bustrip_trends_2008_2023.rds") # here's one I did earlier...
 lsoa_trips_trend <- add_lsoa_geog_details(lsoa_trend_data, "tph_weekday_Morning_Peak")
+
+summary(lsoa_trips_trend$trips_2006_08)
+hist(lsoa_trips_trend$trips_2006_08, breaks = 100)
+
 lsoa_trips_bivariate <- lsoa_trips_trend_for_bivariate_map(lsoa_trips_trend,
-                                                           a_threshold = 0.05,
-                                                           b_threshold = -0.4,
-                                                           a_label = "Improved",
-                                                           b_label = "Same or moderate reduction",
-                                                           c_label = "Significant reduction")
+                                                           threshold_c = 60,
+                                                           threshold_b = 15,
+                                                           threshold_3 = 0.5,
+                                                           threshold_2 = -0.40,
+                                                           label_1 = "Worse",
+                                                           label_2 = "Same",
+                                                           label_3 = "Better")
 
 table(lsoa_trips_bivariate$service_frequency_2008_label,
       lsoa_trips_bivariate$service_reduction_2008_23_label)
@@ -736,6 +764,24 @@ table(lsoa_trips_bivariate$trips_bi_variate_label,
 
 table(lsoa_trips_bivariate$trips_bi_variate_label)
 
+summary(lsoa_trips_bivariate$tph_per_route_2008)
+summary(lsoa_trips_bivariate$tph_per_route_2023)
+
+lsoa_tph_per_route <- lsoa_trips_bivariate %>%
+  st_drop_geometry() %>%
+  select(lsoa11,
+         tph_per_route_2008,
+         tph_per_route_2023) %>%
+  gather(key = indicator,
+         value = tprph,
+         -lsoa11) %>%
+  mutate(year = as.factor(as.numeric(gsub("tph_per_route_", "", indicator))))
+
+ggplot(data = lsoa_tph_per_route, aes(x = tprph, col = year, fill = year)) +
+  geom_histogram(position = "dodge", binwidth = 0.2)
+
+hist(lsoa_trips_bivariate$tph_per_route_2008, breaks = 100)
+hist(lsoa_trips_bivariate$tph_per_route_2023, breaks = 100)
 
 #3A #cc0024  #3B #8a274a  #3C #4b264d
 #2A #dd7c8a  #2B #8d6c8f  #2C #4a4779
@@ -751,8 +797,35 @@ myPalette <- c("#dddddd", #A1 - "Good: Same or improved"
                "#4a4779", #C2 - "OK: Reduced significantly"
                "#4b264d") #C3 - "Poor: Reduced significantly"
 
+
+myPalette2 <- c("#f3f3f3",#A1 - "Poor: Worse"
+               "#eac5dd", #B1 - "OK: Worse"
+               "#e6a3d0", #C1 - "Good: Worse"
+               "#c2f1ce", #A2 - "Poor: Same"
+               "#9ec6d3", #B2 - "OK: Same"
+               "#bc9fce", #C2 - "Good: Same"
+               "#8be2af", #A3 - "Poor: Better"
+               "#7fc6b1", #B3 - "OK: Better"
+               "#7b8eaf") #C3 - "Good: Better"
+
 lsoa_trips_bivariate <- lsoa_trips_bivariate %>%
   filter(!is.na(trips_bi_variate))
+
+tmap_mode("view")
+tm_shape(lsoa_trips_bivariate) +
+  tm_polygons(col = "trips_bi_variate_label",
+              alpha = 1,
+              border.col = NA,
+              border.alpha = 0,
+              palette = myPalette2,
+              title = "Public tranport (2008 - 2023)",
+              popup.vars = c("Frequency (2008)" = "service_frequency_2008_label",
+                "Change in service (2008-2023)" = "service_reduction_2008_23_label",
+                "Trips per route per hour (2008)" = "tph_per_route_2008",
+                "Trips per hour (2008)" = "trips_2006_08",
+                "Trips per hour (2023)" = "trips_2023",
+                "Change in trips per hour (%)" = "trips_change_2008_2023_pct"))
+
 
 tmap_mode("plot")
 b_plot <- tm_shape(lsoa_trips_bivariate) +
@@ -765,24 +838,15 @@ b_plot <- tm_shape(lsoa_trips_bivariate) +
   tm_layout(
     legend.title.size = 1.0,
     legend.text.size = 0.75,
-    #legend.width = 40,
-    #legend.position = c("left","top"),
-    #legend.bg.color = "white",
-    #legend.frame = "black",
     legend.outside = TRUE,
-    legend.outside.size = 1.0,
+    legend.outside.size = 0.5,
     legend.outside.position = "right")
 
-              # ,popup.vars = c("Frequency (2008)" = "service_frequency_2008_label",
-              #                "Change in service (2008-2023)" = "service_reduction_2008_23_label",
-              #                "Trips per hour (2008)" = "trips_2006_08",
-              #                "Trips per hour (2023)" = "trips_2023",
-              #                "Change in trips per hour (%)" = "trips_change_2008_2023_pct")
 
 tmap_save(b_plot,
           "plots/july-23/bus-service-bivariate-2008-2023.png",
           width = 500,
-          height = 500,
+          height = 450,
           units = "mm",
           dpi = 600)
 
@@ -933,10 +997,8 @@ saveRDS(object = lsoa_trend_data,
 la_trend_data <- make_trend_data(periods, geog = "la", geog_name = local_authority_name)
 la_trend_data <- add_lacode_region(la_trend_data)
 la_trend_data <- add_la_rural_urban_class(la_trend_data)
-region_trend_data <- summarise_trend_data(la_trend_data, period_name, rgn, region_name)
 la_trend_data_eng <- la_trend_data %>%
   filter(!region_name %in% c("Wales", "Scotland"))
-
 
 london_trend_data <- summarise_trend_data(la_trend_data_eng, period_name, london, rural_urban)
 london_tube_summary <- summarise_trend_data(lsoa_trips_trend, london_tube)
@@ -958,7 +1020,7 @@ london_tube_graphdata <- london_tube_graphdata %>%
   ungroup() %>%
   rename(Location = london_tube)
 
-ggplot(data = london_tube_graphdata, aes(x = year, y = trips_per_hour_pctmax, col = Location)) +
+london_tube_graph_pct <- ggplot(data = london_tube_graphdata, aes(x = year, y = trips_per_hour_pctmax, col = Location)) +
   geom_line(linewidth = 1) +
   geom_point(size = 4, shape = "circle open") +
   ylim(c(0,1.2)) +
@@ -969,7 +1031,27 @@ ggplot(data = london_tube_graphdata, aes(x = year, y = trips_per_hour_pctmax, co
   #theme(axis.line = element_line(colour = "black", linewidth = 1)) +
   #scale_x_continuous(expand=c(0,0)) +
   xlab("Year") +
-  ylab("Average number of trips per hour (rush hour)")
+  ylab("Average service level index (2008 == 1.0)")
+
+london_tube_graph_trips <- ggplot(data = london_tube_graphdata, aes(x = year, y = trips_per_hour, col = Location)) +
+  geom_line(linewidth = 1) +
+  geom_point(size = 4, shape = "circle open") +
+  #ylim(c(0,1.2)) +
+  theme_bw() +
+  #theme_classic() +
+  #theme(axis.line.x = element_line(colour = 'black', size=0.5, linetype='solid'),
+  #      axis.line.y = element_line(colour = 'black', size=0.5, linetype='solid')) +
+  #theme(axis.line = element_line(colour = "black", linewidth = 1)) +
+  #scale_x_continuous(expand=c(0,0)) +
+  xlab("Year") +
+  ylab("Average trips per hour (rush hour)")
+
+
+ggsave(plot = london_tube_graph_pct,
+       filename = "plots/july-23/london-tube-outside-trend-pct-2008-23.png")
+
+ggsave(plot = london_tube_graph_trips,
+       filename = "plots/july-23/london-tube-outside-trend-trips-2008-23.png")
 
 
 # summarise by london and non-london averages for weekday_peaks (aka rush hour)
@@ -1008,10 +1090,72 @@ ggplot(data = national_trend_graph_data, aes(x = year, y = trips_per_hour_pctmax
   ylim(c(0,1.2)) +
   theme_bw() +
   xlab("Year") +
-  ylab("Average number of trips per hour (rush hour)")
+  ylab("Average number of trips per hour (rush hour)") +
+  scale_color_brewer(palette = "Dark2")
 
 
-# add rural classification to la.
+
+#  regional table ---------------------------------------------------------
+
+library(RColorBrewer)
+library(ggsci)
+display.brewer.all()
+
+table(region_trend_data$period_name)
+
+region_trend_data <- summarise_trend_data(la_trend_data, period_name, rgn, region_name)
+region_summary_rushhour <- region_trend_data %>%
+  filter(grepl("Sat_Evening", period_name))
+
+region_summary_rushhour_graphdata <- region_summary_rushhour %>%
+  select(region_name,
+         `2008` = trips_2006_08,
+         `2019` = trips_2019,
+         `2022` = trips_2022,
+         `2023` = trips_2023) %>%
+  gather(key = year,
+         value = trips_per_hour,
+         -region_name) %>%
+  mutate(year = as.integer(year))
+
+region_summary_rushhour_graphdata <- region_summary_rushhour_graphdata %>%
+  group_by(region_name) %>%
+  mutate(trips_per_hour_pctmax = trips_per_hour / trips_per_hour[year == 2008]) %>%
+  ungroup()
+
+region_summary_rushhour_graph_pct <- ggplot(data = region_summary_rushhour_graphdata, aes(x = year, y = trips_per_hour_pctmax, col = region_name)) +
+  geom_line(linewidth = 1) +
+  geom_point(size = 4, shape = "circle open") +
+  ylim(c(0,1.2)) +
+  theme_bw() +
+  #theme_classic() +
+  #theme(axis.line.x = element_line(colour = 'black', size=0.5, linetype='solid'),
+  #      axis.line.y = element_line(colour = 'black', size=0.5, linetype='solid')) +
+  #theme(axis.line = element_line(colour = "black", linewidth = 1)) +
+  #scale_x_continuous(expand=c(0,0)) +
+  xlab("Year") +
+  ylab("Average service level index (2008 == 1.0)") +
+  scale_color_brewer(palette = "Paired")
+  #scale_color_npg()
+
+plot(region_summary_rushhour_graph_pct)
+
+region_summary_rushhour_graph_trips <- ggplot(data = region_summary_rushhour_graphdata, aes(x = year, y = trips_per_hour, col = region_name)) +
+  geom_line(linewidth = 1) +
+  geom_point(size = 4, shape = "circle open") +
+  theme_bw() +
+  xlab("Year") +
+  ylab("Average trips per hour (rush hour)") +
+  scale_color_brewer(palette = "Paired")
+
+plot(region_summary_rushhour_graph_trips)
+
+ggsave(plot = region_summary_rushhour_graph_pct,
+       filename = "plots/july-23/region-trend-pct-2008-23.png")
+
+ggsave(plot = region_summary_rushhour_graph_trips,
+       filename = "plots/july-23/region-trend-trips-2008-23.png")
+
 
 
 

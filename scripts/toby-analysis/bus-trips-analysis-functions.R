@@ -51,39 +51,7 @@ load_trips_data <- function(geog, mode_no) {
 
 }
 
-#' identify london underground lsoas
-add_london_metro_lsoas <- function(lsoa_trip_data) {
 
-  trips_2004_2023 <- readRDS("data/trips_per_lsoa_by_mode_2004_2023.Rds")
-  metro_trips <- trips_2004_2023 %>%
-    filter(route_type == 1)
-
-  #check which years have most data and keep that year
-  max_year <- metro_trips %>%
-    group_by(year) %>%
-    summarise(n = n()) %>%
-    ungroup() %>%
-    slice_max(year, n = 1, with_ties = FALSE)
-
-  # keep only lsoas for year with most LSOAs
-  # and only those on the london underground area (i.e. not Tyneside metro)
-  london_metro_lsoas <- metro_trips %>%
-    filter(year == max_year$year)  %>%
-    filter(RGN11NM %in% c("London")) %>%
-    transmute(lsoa11 = zone_id,
-              #route_type,
-              #year,
-              #LAD17NM,
-              #RGN11NM,
-              london_underground = TRUE)
-
-  # add to lsoa data
-  lsoa_trip_data <- left_join(lsoa_trip_data, london_metro_lsoas, by = "lsoa11")
-
-  lsoa_trip_data <- lsoa_trip_data %>%
-    mutate(london_underground = ifelse(is.na(london_underground), FALSE, london_underground))
-
-}
 
 
 #' add metropolitan areas
