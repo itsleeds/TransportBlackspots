@@ -67,11 +67,11 @@ add_london_metro_lsoas <- function(bustrips_lsoa, trips_lsoa) {
 }
 
 # join required geographical fields (existing data has LAD17 data) - do we need this
-lsoa_bustrips <- load_lsoa_bustrips()
+#lsoa_bustrips <- load_lsoa_bustrips()
 
-table(lsoa_bustrips$RGN11NM,
-      lsoa_bustrips$london_underground,
-      useNA = "ifany")
+#table(lsoa_bustrips$RGN11NM,
+#      lsoa_bustrips$london_underground,
+#      useNA = "ifany")
 
 # identify outliers and remove from the data
 

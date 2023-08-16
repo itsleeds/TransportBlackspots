@@ -1,5 +1,9 @@
 if(clear_all) {
   rm(list = ls())
+} else {
+  env_list_no_onspd <- ls()[ls() != "onspd"]
+  rm(list = env_list_no_onspd)
+  rm(env_list_no_onspd)
 }
 
 # load packages
@@ -20,7 +24,10 @@ load_packages <- function() {
 
 load_packages()
 
-#' TODO: source required function building scripts.
+#' source required function building scripts.
+source("scripts/toby-analysis/final/process-lsoa-data.R")
+source("scripts/toby-analysis/final/process-la-data.R")
+source("scripts/toby-analysis/final/clean-data.R")
 
-#source("")
-#source("")
+source("scripts/toby-analysis/final/onspd.R")
+

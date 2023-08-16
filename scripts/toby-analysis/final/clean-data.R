@@ -219,7 +219,8 @@ clean_trips_data_for_each_period <- function(trips_data,
   trip_data_period <- trips_data %>%
     select(zone_id,
             year,
-            runs := all_of(period))
+            runs = period)
+
 
     # add missing years for each area (NAs added if year not included)
     trip_data_period <- add_missing_years(trip_data_period)
@@ -241,8 +242,46 @@ clean_trips_data_for_each_period <- function(trips_data,
 
 }
 
-clean_all_trips_data_lsoa <- function(trips_data) {
+clean_all_trips_data <- function(trips_data,
+                                 periods,
+                                 message_n_rows = 100,
+                                 gss_name) {
 
+  old_names <- names(trips_data)
+  new_names <- gsub(" ", "_", old_names)
+  colnames(trips_data) <- new_names
+
+  # create an empty list
+  cleaned_trips_data <- list()
+
+  # run a loop that runs the main function above over each time of day/week in the list above
+  # and combine into one list adding an new element of that list each time
+  for(p in periods) {
+    cleaned_trips_data[[p]] <-  clean_trips_data_for_each_period(trips_data,
+                                                                 period = p,
+                                                                 message_row_no = message_n_rows)
+  }
+
+  # bind all rows of list and thus create a data.frame from the list
+  cleaned_trips_data <- dplyr::bind_rows(cleaned_trips_data)
+
+  # remame zone id to lsoa
+  cleaned_trips_data <- cleaned_trips_data %>%
+    rename({{ gss_name }} := zone_id)
+
+  # if any values below zero, set to zero
+  cleaned_trips_data <- cleaned_trips_data %>%
+    mutate(runs = ifelse(runs < 0, 0, runs),
+           runs_cleaned = ifelse(runs_cleaned < 0, 0, runs_cleaned))
+
+}
+
+make_clean_lsoa_bustrips_data <- function() {
+
+  # get all bus trip data by lsoa
+  lsoa_bustrips <- load_lsoa_bustrips()
+
+  # define list of fields to analyse
   periods <- c("tph_weekday_Morning_Peak",
                "tph_weekday_Midday",
                "tph_weekday_Afternoon_Peak",
@@ -260,33 +299,12 @@ clean_all_trips_data_lsoa <- function(trips_data) {
                "tph_Sun_Night",
                "tph_daytime_avg")
 
-  # create an empty list
-  cleaned_trips_data <- list()
-
-  # run a loop that runs the main function above over each time of day/week in the list above
-  # and combine into one list adding an new element of that list each time
-  for(p in periods) {
-    cleaned_trips_data[[p]] <-  clean_trips_data_for_each_period(trips_data,
-                                                                 period = p,
-                                                                 message_row_no = 10000)
-  }
-
-  # bind all rows of list and thus create a data.frame from the list
-  cleaned_trips_data <- dplyr::bind_rows(cleaned_trips_data)
-
-  # remame zone id to lsoa
-  cleaned_trips_data <- cleaned_trips_data %>%
-    rename(lsoa11 = zone_id)
-
-}
-
-makes_clean_lsoa_bustrips_data <- function() {
-
-  # get all bus trip data by lsoa
-  lsoa_bustrips <- load_lsoa_bustrips()
-
   # clean data to remove all outliers and missing data (interpolate)
-  cleaned_bustrips_lsoa <- clean_all_trips_data_lsoa(lsoa_bustrips)
+  cleaned_bustrips_lsoa <- clean_all_trips_data(lsoa_bustrips,
+                                                periods,
+                                                message_n_rows = 10000,
+                                                gss_name = lsoa11)
+
   saveRDS(cleaned_bustrips_lsoa,
           "data/bustrips_lsoa_2004_2008_cleaned.rds")
 
@@ -344,5 +362,47 @@ simplify_tph_trends <- function(cleaned_bustrips_lsoa_wide_years) {
               tph_2023 = `2023`) %>%
     mutate(tph_2006_2023_change = tph_2023 - tph_2006_08) %>%
     mutate(tph_2006_2023_change_pct = tph_2006_2023_change / tph_2023)
+
+}
+
+
+#  local authority cleaning data functions --------------------------------
+
+make_clean_la_bustrips_data <- function() {
+
+  # get all bus trip data by lsoa
+  la_bustrips <- load_la_bustrips()
+
+  # define list of fields to analyse
+  periods <- c(#"tph_weekday_Morning_Peak",
+               #"tph_weekday_Midday",
+               #"tph_weekday_Afternoon_Peak",
+               #"tph_weekday_Evening",
+               #"tph_weekday_Night",
+               "tph_Mon_Morning_Peak",
+               "tph_Mon_Midday",
+               "tph_Mon_Afternoon_Peak",
+               "tph_Mon_Evening",
+               "tph_Mon_Night",
+               "tph_Sat_Morning_Peak",
+               "tph_Sat_Midday",
+               "tph_Sat_Afternoon_Peak",
+               "tph_Sat_Evening",
+               "tph_Sat_Night",
+               "tph_Sun_Morning_Peak",
+               "tph_Sun_Midday",
+               "tph_Sun_Afternoon_Peak",
+               "tph_Sun_Evening",
+               "tph_Sun_Night")
+
+  # clean data to remove all outliers and missing data (interpolate)
+  cleaned_bustrips_la <- clean_all_trips_data(la_bustrips,
+                                              periods,
+                                              message_n_rows = 100,
+                                              gss_name = LAD23NM)
+
+  cleaned_bustrips_la <- cleaned_bustrips_la %>%
+    mutate(runs = ifelse(runs < 0, 0, runs),
+           runs_cleaned = ifelse(runs_cleaned < 0, 0, runs_cleaned))
 
 }
