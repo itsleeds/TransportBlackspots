@@ -152,7 +152,7 @@ zone_service$tph_daytime_avg =  (zone_service$tph_weekday_Morning_Peak * 5 * 4 +
 
 if(lamode){
   #zone_service_out <- zone_service[,c(1:2,33,3:32)]
-  saveRDS(zone_service_out, "data/trips_per_la_by_mode_2004_2023.Rds")
+  saveRDS(zone_service, "data/trips_per_la_by_mode_2004_2023.Rds")
 } else {
   # Output
   la = read.csv("data/GB_OA_LSOA_MSOA_LAD_Classifications_2017.csv")
