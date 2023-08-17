@@ -1,4 +1,4 @@
-get_onspd <- function(keep.only.current = TRUE) {
+load_onspd <- function(keep.only.current = TRUE) {
 
   # set timer
   print("reading in ONSPD...")

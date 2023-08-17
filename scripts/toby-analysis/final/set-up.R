@@ -28,6 +28,9 @@ load_packages()
 source("scripts/toby-analysis/final/process-lsoa-data.R")
 source("scripts/toby-analysis/final/process-la-data.R")
 source("scripts/toby-analysis/final/clean-data.R")
+source("scripts/toby-analysis/final/summarise-data.R")
 
 source("scripts/toby-analysis/final/onspd.R")
 
+options(dplyr.summarise.inform = FALSE)
+options(dplyr.show_progress = TRUE)

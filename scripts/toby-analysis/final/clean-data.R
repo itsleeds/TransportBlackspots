@@ -360,8 +360,22 @@ simplify_tph_trends <- function(cleaned_bustrips_lsoa_wide_years) {
               period_name,
               tph_2006_08 = (`2006` + `2007` + `2008`) / 3,
               tph_2023 = `2023`) %>%
+    mutate(tph_2023 = ifelse(tph_2023 < 0, 0, tph_2023)) %>%
     mutate(tph_2006_2023_change = tph_2023 - tph_2006_08) %>%
-    mutate(tph_2006_2023_change_pct = tph_2006_2023_change / tph_2023)
+    mutate(tph_2006_2023_change_pct = tph_2006_2023_change / tph_2006_08)
+
+  # for those values with 0 services in 2006-08 and some in 2023, set these to pct = 2 to represent an increase
+  bustrips_trends <- bustrips_trends %>%
+    mutate(tph_2006_2023_change_pct = ifelse(tph_2006_08 == 0 & is.infinite(tph_2006_2023_change_pct),
+                                             2,
+                                             tph_2006_2023_change_pct))
+
+  # for those values with 0 services in 2006-08 and 0 in 2023, set these to pct = 0 to represent not change
+  # Otherwise it comes out as NaN
+  bustrips_trends <- bustrips_trends %>%
+    mutate(tph_2006_2023_change_pct = ifelse(tph_2006_08 == 0 & is.nan(tph_2006_2023_change_pct),
+                                             0,
+                                             tph_2006_2023_change_pct))
 
 }
 
@@ -374,16 +388,11 @@ make_clean_la_bustrips_data <- function() {
   la_bustrips <- load_la_bustrips()
 
   # define list of fields to analyse
-  periods <- c(#"tph_weekday_Morning_Peak",
-               #"tph_weekday_Midday",
-               #"tph_weekday_Afternoon_Peak",
-               #"tph_weekday_Evening",
-               #"tph_weekday_Night",
-               "tph_Mon_Morning_Peak",
-               "tph_Mon_Midday",
-               "tph_Mon_Afternoon_Peak",
-               "tph_Mon_Evening",
-               "tph_Mon_Night",
+  periods <- c("tph_weekday_Morning_Peak",
+               "tph_weekday_Midday",
+               "tph_weekday_Afternoon_Peak",
+               "tph_weekday_Evening",
+               "tph_weekday_Night",
                "tph_Sat_Morning_Peak",
                "tph_Sat_Midday",
                "tph_Sat_Afternoon_Peak",
@@ -405,4 +414,8 @@ make_clean_la_bustrips_data <- function() {
     mutate(runs = ifelse(runs < 0, 0, runs),
            runs_cleaned = ifelse(runs_cleaned < 0, 0, runs_cleaned))
 
+
 }
+
+
+
