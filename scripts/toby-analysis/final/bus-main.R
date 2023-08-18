@@ -9,10 +9,16 @@ if(get_onspd) {
 }
 
 # run LA, Region and C. Auth functions
-la_bustrips <- make_la_bustrips()
-make_la_region_cauth_summary_tables_and_plots(la_bustrips)
+la_bustrips <- make_la_bustrips() # this cleans and interpolates for all tph cols, and makes a long table
+la_bustrips <- readRDS("data/la_bustrip_trends_2008_2023.rds") # reads in from previously created
 
-# run lsoa analysis
-#lsoa_bustrips <- readRDS("data/bustrips_lsoa_2004_2008_cleaned.rds")
+# make_la_region_cauth_summary_tables_and_plots(la_bustrips)
 
+# creates a small version of selected tph cols wide table
+la_bustrip_trends <- make_trend_summary(la_bustrips,
+                                         geog = "LA",
+                                         geog_code = LAD23CD,
+                                         geog_name = LAD23NM)
 
+# which can then be used to make maps at LA level
+make_la_maps(la_bustrip_trends)

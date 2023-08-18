@@ -102,4 +102,10 @@ make_la_bustrips <- function() {
            CAUTH23NM,
            everything())
 
+  message("Saving 'data/la_bustrips_2005_22_cleaned.rds'...")
+  saveRDS(la_bustrips_cleaned,
+          "data/la_bustrips_2005_22_cleaned.rds")
+
+  return(la_bustrips_cleaned)
+
   }
