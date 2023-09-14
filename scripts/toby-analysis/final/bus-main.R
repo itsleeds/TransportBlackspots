@@ -1,18 +1,28 @@
+reload = FALSE
 # set up, includes loading packages and sourcing scripts
-clear_all = FALSE
+clear_all = reload
 source("scripts/toby-analysis/final/set-up.R")
 
 # run functions
-get_onspd = FALSE
+get_onspd = reload
 if(get_onspd) {
   onspd <- load_onspd()
 }
 
-# run LA, Region and C. Auth functions
-la_bustrips <- make_la_bustrips() # this cleans and interpolates for all tph cols, and makes a long table
-la_bustrips <- readRDS("data/la_bustrip_trends_2008_2023.rds") # reads in from previously created
+#
 
-# make_la_region_cauth_summary_tables_and_plots(la_bustrips)
+
+# run LA, Region and C. Auth functions
+#la_bustrips <- make_la_bustrips() # this cleans and interpolates for all tph cols, and makes a long table
+la_bustrips <- readRDS("data/la_bustrips_2005_23_cleaned.rds") # reads in from previously created
+make_la_region_cauth_summary_tables_and_plots(la_bustrips, make_graphs = TRUE)
+
+## LSOA based analysis...
+lsoa_bustrips <- make_clean_lsoa_bustrips_data()
+lsoa_bustrips_cleaned <- readRDS("data/bustrips_lsoa_2004_2023_cleaned.rds")
+
+make_londontube_summary_maps()
+make_national_trend_summaries()
 
 # creates a small version of selected tph cols wide table
 la_bustrip_trends <- make_trend_summary(la_bustrips,
@@ -22,3 +32,11 @@ la_bustrip_trends <- make_trend_summary(la_bustrips,
 
 # which can then be used to make maps at LA level
 make_la_maps(la_bustrip_trends)
+
+la_bustrip_trends <- la_bustrip_trends %>%
+  mutate(tph_daytime_avg_tph_2006_2023_change = tph_daytime_avg_tph_2023 - tph_daytime_avg_tph_avg_2006_08)
+
+
+# make lsoa bivariate maps
+make_lsoa_bivariate_maps()
+

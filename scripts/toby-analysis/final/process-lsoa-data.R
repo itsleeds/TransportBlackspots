@@ -66,6 +66,8 @@ add_london_metro_lsoas <- function(bustrips_lsoa, trips_lsoa) {
 
 }
 
+
+
 # join required geographical fields (existing data has LAD17 data) - do we need this
 #lsoa_bustrips <- load_lsoa_bustrips()
 

@@ -29,6 +29,7 @@ load_la_bustrips <- function() {
   # trips_la <- bind_rows(trips_la)
 
   trips_la <- readRDS("data/trips_per_la_by_mode_2004_2023.Rds")
+data.frame(names(trips_la))
 
   # filter for buses only
   bustrips_la <- trips_la %>%
@@ -102,9 +103,9 @@ make_la_bustrips <- function() {
            CAUTH23NM,
            everything())
 
-  message("Saving 'data/la_bustrips_2005_22_cleaned.rds'...")
+  message("Saving 'data/la_bustrips_2005_23_cleaned.rds'...")
   saveRDS(la_bustrips_cleaned,
-          "data/la_bustrips_2005_22_cleaned.rds")
+          "data/la_bustrips_2005_23_cleaned.rds")
 
   return(la_bustrips_cleaned)
 

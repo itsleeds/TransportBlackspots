@@ -80,7 +80,13 @@ clean_data_for_outlier_analysis <- function(trip_data_period) {
     ungroup() %>%
     mutate(runs = ifelse(runs == 0 & is.nan(runs_max_pct),
                          0,
-                         ifelse(year < 2020 & runs_zscore < -1, NA, runs)))
+                         ifelse(year < 2020 & runs_zscore < -1, NA, runs))) %>%
+    # add another one for earlier years likely to have some missing data - where data is less than half the peak
+    mutate(runs = ifelse(year < 2010 & runs_max_pct < 0.5 & !is.na(runs),
+                         NA,
+                         runs))
+
+
 }
 
 # some LSOAs will not have sufficient data points in order to detect outliers or even to be used for
@@ -219,7 +225,7 @@ clean_trips_data_for_each_period <- function(trips_data,
   trip_data_period <- trips_data %>%
     select(zone_id,
             year,
-            runs = period)
+            runs = all_of(period))
 
 
     # add missing years for each area (NAs added if year not included)
@@ -306,7 +312,7 @@ make_clean_lsoa_bustrips_data <- function() {
                                                 gss_name = lsoa11)
 
   saveRDS(cleaned_bustrips_lsoa,
-          "data/bustrips_lsoa_2004_2008_cleaned.rds")
+          "data/bustrips_lsoa_2004_2023_cleaned.rds")
 
   # make wide table
   cleaned_bustrips_lsoa_wide <- cleaned_bustrips_lsoa %>%
@@ -331,7 +337,7 @@ make_clean_lsoa_bustrips_data <- function() {
   cleaned_bustrips_lsoa_wide <- left_join(cleaned_bustrips_lsoa_wide, metro_lsoas, by = "lsoa11")
 
   saveRDS(cleaned_bustrips_lsoa_wide,
-          "data/bustrips_lsoa_2004_2008_cleaned_wide.rds")
+          "data/bustrips_lsoa_2004_2023_cleaned_wide.rds")
 
   cleaned_bustrips_lsoa_wide_years <- cleaned_bustrips_lsoa %>%
     #filter(!is.na(runs_cleaned)) %>%
@@ -345,7 +351,9 @@ make_clean_lsoa_bustrips_data <- function() {
   cleaned_bustrips_lsoa_wide_years <- left_join(cleaned_bustrips_lsoa_wide_years, metro_lsoas, by = "lsoa11")
 
   saveRDS(cleaned_bustrips_lsoa_wide_years,
-          "data/bustrips_lsoa_2004_2008_cleaned_wide_years.rds")
+          "data/bustrips_lsoa_2004_2023_cleaned_wide_years.rds")
+
+  return(cleaned_bustrips_lsoa)
 
 }
 
@@ -402,7 +410,9 @@ make_clean_la_bustrips_data <- function() {
                "tph_Sun_Midday",
                "tph_Sun_Afternoon_Peak",
                "tph_Sun_Evening",
-               "tph_Sun_Night")
+               "tph_Sun_Night",
+               "tph_daytime_avg"
+               )
 
   # clean data to remove all outliers and missing data (interpolate)
   cleaned_bustrips_la <- clean_all_trips_data(la_bustrips,

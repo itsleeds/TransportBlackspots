@@ -1,7 +1,8 @@
 if(clear_all) {
-  rm(list = ls())
+  rm_list <- ls()[ls() != "reload"]
+  rm(list = rm_list)
 } else {
-  env_list_no_onspd <- ls()[ls() != "onspd"]
+  env_list_no_onspd <- ls()[ls() != "onspd" & ls() != "reload"]
   rm(list = env_list_no_onspd)
   rm(env_list_no_onspd)
 }
