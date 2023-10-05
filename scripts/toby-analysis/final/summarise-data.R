@@ -366,7 +366,13 @@ lsoa_bustrips_bivariate_analysis <- function(threshold_3 = 0.15,
                                               tph_2006_08 < threshold_b ~ "A"),
            service_frequency_2008_label = case_when(tph_2006_08 > threshold_c ~ "Good",
                                                     between(tph_2006_08, threshold_b, threshold_c) ~ "OK",
-                                                    tph_2006_08 < threshold_b ~ "Poor"))
+                                                    tph_2006_08 < threshold_b ~ "Poor"),
+           service_frequency_2023 = case_when(tph_2023 > threshold_c ~ "C",
+                                              between(tph_2023, threshold_b, threshold_c) ~ "B",
+                                              tph_2023 < threshold_b ~ "A"),
+           service_frequency_2023_label = case_when(tph_2023 > threshold_c ~ "Good",
+                                                    between(tph_2023, threshold_b, threshold_c) ~ "OK",
+                                                    tph_2023 < threshold_b ~ "Poor"))
 
   # check: table(lsoa_trends_2008_23$service_frequency_2008_label)
 
@@ -398,6 +404,8 @@ lsoa_bustrips_bivariate_analysis <- function(threshold_3 = 0.15,
               trips_bi_variate_label,
               service_frequency_2008,
               service_frequency_2008_label,
+              service_frequency_2023,
+              service_frequency_2023_label,
               service_reduction_2008_23,
               service_reduction_2008_23_label,
               tph_2006_08,
@@ -462,18 +470,10 @@ make_regions_sf <- function(detolerate = TRUE, detolerate_value = 500) {
 
 }
 
-make_lsoa_bivariate_maps <- function() {
+make_lsoa_bivariate_maps <- function(lsoa_bustrips_bivariate) {
 
   # start timer
   tic("bivariate maps on tph changes 2006-08 to 2023 made")
-
-  # run lsoa analysis
-  #lsoa_bustrips <- readRDS("data/bustrips_lsoa_2004_2008_cleaned.rds")
-  lsoa_bustrips_bivariate <- lsoa_bustrips_bivariate_analysis(threshold_3 = 0.15,
-                                                              threshold_2 = -0.15,
-                                                              label_1 = "Worse",
-                                                              label_2 = "Same",
-                                                              label_3 = "Better")
 
   # focus on key time periods
   periods_for_maps <- c("tph_weekday_Morning_Peak",
@@ -775,6 +775,80 @@ make_la_maps <- function(la_bustrip_trends) {
 
   # stop timer
   toc()
+
+}
+
+
+# SUMMARISE DATA AT PCON LEVEL 2022 AND 2023 ------------------------------
+summarise_data_by_pcon <- function() {
+
+  # Use average weekday daytime.
+  source("../environmental-data-for-change/scripts/useful-functions.R")
+  source("../environmental-data-for-change/scripts/geography-lookups.R")
+  source("../environmental-data-for-change/scripts/politics/political-representation.R")
+
+  lsoa_bustrips_bivariate <- lsoa_bustrips_bivariate_analysis(threshold_3 = 0.15,
+                                                              threshold_2 = -0.15,
+                                                              label_1 = "Worse",
+                                                              label_2 = "Same",
+                                                              label_3 = "Better")
+
+  lsoa_bustrips_bivariate_avg <- lsoa_bustrips_bivariate %>%
+    filter.for.england.wales(lsoa11) %>%
+    filter(period_name == "tph_daytime_avg")
+
+  lsoa_to_pcon_lup <- get.lsoa.to.main.pcon(add.mps = FALSE)
+  lsoa_bustrips_bivariate_avg <- left_join(lsoa_bustrips_bivariate_avg, lsoa_to_pcon_lup, by = "lsoa11")
+
+  pcon_bustrips <- lsoa_bustrips_bivariate_avg %>%
+    group_by(pcon,
+             parliamentary_constituency) %>%
+    summarise(tph_2006_08 = mean(tph_2006_08),
+              tph_2023 = mean(tph_2023)) %>%
+    ungroup() %>%
+    mutate(tph_2006_2023_change = tph_2023 - tph_2006_08) %>%
+    mutate(tph_2006_2023_change_pct = tph_2006_2023_change / tph_2006_08)
+
+  threshold_b <- 4
+  threshold_c <- 16
+
+  pcon_bustrips <- pcon_bustrips %>%
+    mutate(service_frequency_2008 = case_when(tph_2006_08 > threshold_c ~ "C",
+                                              between(tph_2006_08, threshold_b, threshold_c) ~ "B",
+                                              tph_2006_08 < threshold_b ~ "A"),
+           service_frequency_2008_label = case_when(tph_2006_08 > threshold_c ~ "Good",
+                                                    between(tph_2006_08, threshold_b, threshold_c) ~ "OK",
+                                                    tph_2006_08 < threshold_b ~ "Poor"),
+           service_frequency_2023 = case_when(tph_2023 > threshold_c ~ "C",
+                                              between(tph_2023, threshold_b, threshold_c) ~ "B",
+                                              tph_2023 < threshold_b ~ "A"),
+           service_frequency_2023_label = case_when(tph_2023 > threshold_c ~ "Good",
+                                                    between(tph_2023, threshold_b, threshold_c) ~ "OK",
+                                                    tph_2023 < threshold_b ~ "Poor"))
+
+  # check: table(lsoa_trends_2008_23$service_frequency_2008_label)
+
+  # REDUCTION IN SERVICE
+  threshold_3 = 0.15
+  threshold_2 = -0.15
+  label_1 = "Worse"
+  label_2 = "Same"
+  label_3 = "Better"
+
+  pcon_bustrips <- pcon_bustrips %>%
+    mutate(service_reduction_2008_23 = case_when(tph_2006_2023_change_pct >= threshold_3 ~ "3",
+                                                 between(tph_2006_2023_change_pct, threshold_2, threshold_3) ~ "2",
+                                                 tph_2006_2023_change_pct < threshold_2 ~ "1"),
+           service_reduction_2008_23_label = case_when(tph_2006_2023_change_pct >= threshold_3 ~ label_3,
+                                                       between(tph_2006_2023_change_pct, threshold_2, threshold_3) ~ label_2,
+                                                       tph_2006_2023_change_pct < threshold_2 ~ label_1))
+
+  table(`2008` = pcon_bustrips$service_frequency_2008_label)
+
+  table(`2023` = pcon_bustrips$service_frequency_2023_label)
+
+  table(`2008` = pcon_bustrips$service_frequency_2008_label,
+        `2023` = pcon_bustrips$service_frequency_2023_label)
 
 }
 

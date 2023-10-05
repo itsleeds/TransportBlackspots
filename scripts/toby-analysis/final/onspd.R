@@ -1,7 +1,7 @@
 load_onspd <- function(keep.only.current = TRUE) {
 
   # set timer
-  print("reading in ONSPD...")
+  message("reading in ONSPD...")
   tic("ONSPD loaded")
   #set current filepath of ONSPD (to allow updates to ONSPD in data without having to update script)
   onspd.location <- list.files("../ons-geog-data/onspd/Data",
