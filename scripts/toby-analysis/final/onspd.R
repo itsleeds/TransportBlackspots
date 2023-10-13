@@ -150,3 +150,48 @@ join_metro_by_la_lup <- function(trips_data) {
     mutate(CAUTH23NM = ifelse(RGN20NM == "London", "Greater London", CAUTH23NM))
 
 }
+
+
+get_pcon_names <- function() {
+
+  pcon_names_location <- list.files("../ons-geog-data/onspd/Documents/", pattern = "Constituency.+csv", full.names = TRUE)
+  pcon_names <- read.csv(pcon_names_location,
+                         stringsAsFactors = FALSE)
+  colnames(pcon_names) <- c("pcon", "parliamentary_constituency")
+  return(pcon_names)
+
+}
+
+make_lsoa_to_pcon_lup <- function() {
+
+  # select distinct lsoa to pcon
+  lsoa_to_pcon <- onspd %>%
+    group_by(lsoa11,
+             pcon) %>%
+    summarise(n = n()) %>%
+    ungroup()
+
+  # filter for only England and Wales areas
+  lsoa_to_pcon <- lsoa_to_pcon %>%
+      filter(grepl("^[E|W]", lsoa11))
+
+  # keep only main lsoa to pcon lookup
+  lsoa_to_pcon <- lsoa_to_pcon %>%
+    group_by(lsoa11) %>%
+    slice_max(order_by = n,
+              n = 1,
+              with_ties = FALSE)
+
+  # read in names of pcons
+  pcon_names <- get_pcon_names()
+
+  # join names to provisional lookup
+  lsoa_to_pcon <- left_join(lsoa_to_pcon, pcon_names, by = "pcon")
+
+  # select cols
+  lsoa_to_pcon <- lsoa_to_pcon %>%
+    select(lsoa11,
+           pcon,
+           parliamentary_constituency)
+
+}

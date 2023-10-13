@@ -110,7 +110,7 @@ make_graph_of_trends <- function(la_bustrips_cleaned,
     group_by({{ geog_code }},
              {{ geog_name }},
              period_name) %>%
-    mutate(tph_pct_max = runs_cleaned / max(runs_cleaned)) %>%
+    mutate(tph_pct_max = runs_cleaned / runs_cleaned[year == 2008]) %>%
     ungroup()
 
   # focus on key time periods
@@ -140,7 +140,7 @@ make_graph_of_trends <- function(la_bustrips_cleaned,
   period_graph_names <- gsub("weekday", "Weekday", period_graph_names)
   period_graph_names <- gsub("daytime avg", "Weekday daytime average", period_graph_names)
 
-  period_graph_names_max <- gsub("Trips per hour:", "Pct of max trips per hour:", period_graph_names)
+  period_graph_names_max <- gsub("Trips per hour:", "Proportional change:", period_graph_names)
 
 
   for(p in 1:length(period_cols)) {
@@ -165,16 +165,19 @@ make_graph_of_trends <- function(la_bustrips_cleaned,
         facet_wrap(. ~ Location, nrow = 4) +
         ylab(period_graph_names[p]) +
         xlab("Year") +
-        theme_bw()
+        theme_bw(base_family = "Libre Franklin") +
+        theme(text = element_text(family = "Libre Franklin"))
 
       g2 <- ggplot(data = bustrips_summary_test, aes(x = year, y = tph_pct_max, col = Location)) +
         geom_line(show.legend = useLegend, linewidth = 1) +
         geom_point(show.legend = useLegend) +
-        ylim(c(0,1)) +
+        #ylim(c(0,NA)) +
+        scale_y_continuous(breaks=seq(0,1,0.2), limits = c(0,NA)) +
         facet_wrap(. ~ Location, nrow = 4) +
         ylab(period_graph_names_max[p]) +
         xlab("Year") +
-        theme_bw()
+        theme_bw(base_family = "Libre Franklin") +
+        theme(text = element_text(family = "Libre Franklin"))
     } else if(!useFacets) {
       g1 <- ggplot(data = bustrips_summary_test, aes(x = year, y = runs_cleaned, col = Location)) +
         geom_line(show.legend = useLegend, linewidth = 1) +
@@ -183,16 +186,19 @@ make_graph_of_trends <- function(la_bustrips_cleaned,
         #facet_wrap(. ~ Location, nrow = 4) +
         ylab(period_graph_names[p]) +
         xlab("Year") +
-        theme_bw()
+        theme_bw(base_family = "Libre Franklin") +
+        theme(text = element_text(family = "Libre Franklin"))
 
       g2 <- ggplot(data = bustrips_summary_test, aes(x = year, y = tph_pct_max, col = Location)) +
         geom_line(show.legend = useLegend, linewidth = 1) +
         geom_point(show.legend = useLegend) +
-        ylim(c(0,1)) +
+        #ylim(c(0,NA)) +
+        scale_y_continuous(breaks=seq(0,1,0.2), limits = c(0,NA)) +
         #facet_wrap(. ~ Location, nrow = 4) +
         ylab(period_graph_names_max[p]) +
         xlab("Year") +
-        theme_bw()
+        theme_bw(base_family = "Libre Franklin") +
+        theme(text = element_text(family = "Libre Franklin"))
     }
 
     if(!dir.exists("plots/aug-23")) {
@@ -331,7 +337,7 @@ make_londontube_summary_maps <- function(remove_scotland = TRUE) {
                        geog_name = london_tube_name,
                        useFacets = FALSE,
                        useLegend = TRUE,
-                       plotHeight = 6,
+                       plotHeight = 4.5,
                        plotWidth = 7)
 
 }
@@ -769,6 +775,187 @@ make_la_maps <- function(la_bustrip_trends) {
     t_filename <- gsub("-2006-2023-change-pct", "", t_filename)
     t_map_filename <- paste0("plots/aug-23/la-maps/", t_filename, "-change-la-map.png")
     tmap_save(tm = la_map,
+              filename = t_map_filename,
+              dpi = 600)
+  }
+
+  # stop timer
+  toc()
+
+}
+
+
+make_lsoa_maps <- function() {
+
+  # start timer
+  tic("LSOA change in TPH maps saved.")
+
+  # get processed cleaned wide data LSOA and simplify
+  lsoa_bustrip_trends <- simplify_tph_trends(cleaned_bustrips_lsoa_wide_years = readRDS("data/bustrips_lsoa_2004_2023_cleaned_wide_years.rds"))
+
+  # focus on key time periods
+  periods_for_maps <- c("tph_weekday_Morning_Peak",
+                        #"tph_weekday_Midday",
+                        #"tph_weekday_Afternoon_Peak",
+                        "tph_weekday_Evening",
+                        #"tph_weekday_Night",
+                        #"tph_Sat_Morning_Peak",
+                        "tph_Sat_Midday",
+                        #"tph_Sat_Afternoon_Peak",
+                        #"tph_Sat_Evening",
+                        #"tph_Sat_Night",
+                        #"tph_Sun_Morning_Peak",
+                        #"tph_Sun_Midday"
+                        #",tph_Sun_Afternoon_Peak",
+                        #"tph_Sun_Evening",
+                        "tph_Sun_Night",
+                        "tph_daytime_avg"
+  )
+
+  lsoa_bustrip_trends <- lsoa_bustrip_trends %>%
+    filter(period_name %in% periods_for_maps)
+
+  lsoa_bustrip_trends_wide <- lsoa_bustrip_trends %>%
+    gather(key = indicator,
+           value = val,
+           -lsoa11,
+           -london_tube,
+           -region_name,
+           -period_name) %>%
+    mutate(indicator = gsub("tph_", "", indicator)) %>%
+    unite(full_indicator, period_name, indicator, sep = "_") %>%
+    spread(key = full_indicator,
+           value = val)
+
+  # list all tph cols
+  tph_cols <- names(lsoa_bustrip_trends_wide)[grepl("tph.+change_pct", names(lsoa_bustrip_trends_wide))]
+
+  # convert pct into a percentage value
+  convert_to_percentage <- function(x, n = 0) round(x * 100, n)
+  lsoa_bustrip_trends_wide <- lsoa_bustrip_trends_wide %>%
+    mutate(across(all_of(tph_cols), convert_to_percentage))
+
+  # get LA boundaries for mapping
+  lsoa_boundaries <- readRDS("../gis-data/boundaries/lsoa/GB_LSOA_2011_super_generalised.Rds")
+  lsoa_boundaries <- lsoa_boundaries %>%
+    select(lsoa11 = code,
+           geometry)
+
+  # get region boundaries
+  region_boundaries <- make_regions_sf(detolerate = TRUE,
+                                       detolerate_value = 200)
+
+  # create sf object from bustrips data
+  lsoa_bustrip_trends_wide <- left_join(lsoa_boundaries, lsoa_bustrip_trends_wide, by = "lsoa11")
+  lsoa_bustrip_trends_wide <- lsoa_bustrip_trends_wide %>%
+    filter(substring(lsoa11, 1, 1) != "N") # remove NI (no data)
+
+  # make nice legend titles
+  legend_titles <- tolower(tph_cols)
+  legend_titles <- gsub("tph_", "", legend_titles)
+  legend_titles <- gsub("_", " ", legend_titles)
+  legend_titles <- gsub("sun", "Sunday", legend_titles) # replace with full spelling
+  legend_titles <- gsub("sat", "Saturday", legend_titles) # replace with full spelling
+  legend_titles <- gsub("weekday", "Weekday", legend_titles) # replace with full spelling
+  legend_titles <- gsub("daytime", "Daytime", legend_titles) # replace with full spelling
+  legend_titles <- gsub("avg", "average", legend_titles) # replace with full spelling
+  legend_titles <- gsub("2006 2023", "", legend_titles) # remove this (it is in title)
+  legend_titles <- gsub("change pct", "", legend_titles) # remove this (added below in better format on new line)
+  legend_titles <- gsub(" {2,}", " ", legend_titles) # remove more than one consequetive space
+  legend_titles <- gsub(" $", "", legend_titles) # remove space on the end of the line
+  message(c("These are the titles for the graphs that will be made: ", legend_titles))
+  legend_titles <- paste0(legend_titles, "\n(% change)") # and a break/new line and explainer of data/unit etc.
+
+  #tmap_mode("view")
+  tmap_mode("plot")
+
+  # forcing tmaps to make intervals for all 41,000 LSOAs takes forever, try manually banding the data beforehand...
+  lsoa_bustrip_trends_wide_1 <- lsoa_bustrip_trends_wide %>%
+    select(lsoa11,
+           tph_daytime_avg_2006_2023_change_pct,
+           geometry) %>%
+    mutate(tph_daytime_avg_2006_2023_change_band = case_when(tph_daytime_avg_2006_2023_change_pct < -75 ~ ">75% reduction",
+                                                             tph_daytime_avg_2006_2023_change_pct < -50 ~ "50-75%% reduction",
+                                                             tph_daytime_avg_2006_2023_change_pct < -25 ~ "25-50% reduction",
+                                                             tph_daytime_avg_2006_2023_change_pct < 0 ~ "1-25% reduction",
+                                                             between(tph_daytime_avg_2006_2023_change_pct, 0, 25) ~ "0-25% increase",
+                                                             tph_daytime_avg_2006_2023_change_pct > 25 ~ ">25% increase"))
+
+  order_of_bands <- c(">75% reduction",
+                      "50-75%% reduction",
+                      "25-50% reduction",
+                      "1-25% reduction",
+                      "0-25% increase",
+                      ">25% increase")
+
+  lsoa_bustrip_trends_wide_1$tph_daytime_avg_2006_2023_change_band = factor(lsoa_bustrip_trends_wide_1$tph_daytime_avg_2006_2023_change_band,
+                                                                            levels = order_of_bands)
+
+  table(lsoa_bustrip_trends_wide_1$tph_daytime_avg_2006_2023_change_band,
+        useNA = "ifany")
+
+  lsoa_map_1 <- tm_shape(lsoa_bustrip_trends_wide_1) +
+    tm_polygons(col = "tph_daytime_avg_2006_2023_change_band",
+                title = "Daytime average\n(% change)",
+                palette = hcl.colors(6, palette = "RdYlBu"),
+                border.alpha = 0.01,
+                border.col = "white",
+                midpoint = NA,
+                colorNA = NULL,
+                textNA = "") +
+    tm_shape(region_boundaries) +
+    tm_borders(col = "black",
+               lwd = 0.6) +
+    tm_layout(frame = FALSE,
+              #legend.frame = "black",
+              legend.position = c(0.63,0.68),
+              #title = "Change in bus service trips per hour, 2008-23",
+    )
+
+  lsoa_map_1
+
+  tmap_save(tm = lsoa_map_1,
+            filename = "plots/aug-23/lsoa-maps/LSOA-weekday-daytime-avg-change-pct.png",
+            dpi = 600)
+
+
+  #run loop that makes and saves a map for each of the tph cols in the data set
+  for(t in 1:length(tph_cols)) {
+
+    # message
+    message(paste0("Saving map for: ", tph_cols[t]))
+
+    #make maps
+    lsoa_map <- tm_shape(lsoa_bustrip_trends_wide) +
+      tm_polygons(col = tph_cols[t],
+                  title = legend_titles[t],
+                  palette = hcl.colors(10, palette = "RdYlBu"),
+                  border.alpha = 0.1,
+                  border.col = "white",
+                  breaks = c(-100,-75,-50,-25,0,11,Inf),
+                  midpoint = NA,
+                  colorNA = NULL,
+                  textNA = "") +
+      tm_shape(region_boundaries) +
+      tm_borders(col = "black",
+                 lwd = 0.6) +
+      tm_layout(frame = FALSE,
+                #legend.frame = "black",
+                legend.position = c(0.63,0.68),
+                #title = "Change in bus service trips per hour, 2008-23",
+      )
+
+    if(!dir.exists("plots/aug-23/lsoa-maps")) {
+      dir.create("plots/aug-23/lsoa-maps")
+    }
+
+    # save maps
+    t_filename <- tolower(tph_cols[t])
+    t_filename <- gsub("tph_", "", t_filename)
+    t_filename <- gsub("_", "-", t_filename)
+    t_filename <- gsub("-2006-2023-change-pct", "", t_filename)
+    t_map_filename <- paste0("plots/aug-23/lsoa-maps/", t_filename, "-change-lsoa-map.png")
+    tmap_save(tm = lsoa_map,
               filename = t_map_filename,
               dpi = 600)
   }

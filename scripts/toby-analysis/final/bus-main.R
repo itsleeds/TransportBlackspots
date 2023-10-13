@@ -17,7 +17,7 @@ la_bustrips <- readRDS("data/la_bustrips_2005_23_cleaned.rds") # reads in from p
 make_la_region_cauth_summary_tables_and_plots(la_bustrips, make_graphs = TRUE)
 
 ## LSOA based analysis...
-lsoa_bustrips <- make_clean_lsoa_bustrips_data()
+#lsoa_bustrips_cleaned <- make_clean_lsoa_bustrips_data()
 lsoa_bustrips_cleaned <- readRDS("data/bustrips_lsoa_2004_2023_cleaned.rds")
 
 make_londontube_summary_maps()
