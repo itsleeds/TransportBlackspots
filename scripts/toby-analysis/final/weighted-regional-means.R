@@ -1,8 +1,9 @@
 la_bustrips <- readRDS("data/la_bustrips_2005_23_cleaned.rds") # reads in from previously created
 la_bustrips_regions <- la_bustrips %>%
   filter(period_name == "tph_daytime_avg") %>%
-  filter(year %in% c(2006, 2007, 2008, 2023)) %>%
+  filter(year %in% c(2006, 2007, 2008, 2010, 2023)) %>%
   mutate(year_band = case_when(year %in% c(2006, 2007, 2008) ~ "2006_2008",
+                               year == 2010 ~ "2010",
                                year == 2023 ~ "2023")) %>%
   group_by(LAD23CD,
            LAD23NM,
@@ -48,8 +49,9 @@ lsoa_bustrips_cleaned <- readRDS("data/bustrips_lsoa_2004_2023_cleaned.rds")
 
 lsoa_bustrips <- lsoa_bustrips_cleaned %>%
   filter(period_name == "tph_daytime_avg") %>%
-  filter(year %in% c(2006, 2007, 2008, 2023)) %>%
+  filter(year %in% c(2006, 2007, 2008, 2010, 2023)) %>%
   mutate(year_band = case_when(year %in% c(2006, 2007, 2008) ~ "tph_2006_2008",
+                               year == 2010 ~ "tph_2010",
                                year == 2023 ~ "tph_2023")) %>%
   group_by(lsoa11,
            year_band) %>%
@@ -57,39 +59,24 @@ lsoa_bustrips <- lsoa_bustrips_cleaned %>%
             runs_cleaned = mean(runs_cleaned, na.rm = TRUE)) %>%
   ungroup()
 
-# get lsoa population statistics
-pop_lsoa <- read.xlsx("../environmental-data-for-change/data/population/sape23dt13mid2020lsoabroadagesestimatesunformatted.xlsx",
-                      sheet = "Mid-2020 Persons",
-                      startRow = 5)
 
-pop_lsoa <- pop_lsoa %>%
-  transmute(lsoa11 = LSOA.Code,
-            population = as.numeric(All.Ages))
+
 
 # get lsoa to pcon lookup
-lsoa_to_pcon <- make_lsoa_to_pcon_lup()
-
-test <- lsoa_to_pcon %>%
-  group_by(lsoa11) %>%
-  summarise(n = n()) %>%
-  ungroup() %>%
-  filter(n != 1)
+# lsoa_to_pcon <- make_lsoa_to_pcon_lup()
+#
+# test <- lsoa_to_pcon %>%
+#   group_by(lsoa11) %>%
+#   summarise(n = n()) %>%
+#   ungroup() %>%
+#   filter(n != 1)
 
 
 
 
 # LSOA TO NEW PCON LOOKUP -------------------------------------------------
 
-lsoa_to_pcon23_lup <- read.csv("../constituency-environmental-reports/data/lookup-tables/postcode-based/LSOA11-to-PC23-by-postcode.csv")
 
-# make one to one lookup
-lsoa_to_pcon23_lup <- lsoa_to_pcon23_lup %>%
-  group_by(lsoa11 = LSOA11CD) %>%
-  slice_max(order_by = postcode_proportion_in_pcon,
-            n = 1) %>%
-  ungroup() %>%
-  select(lsoa11,
-         parliamentary_constituency_2023 = Constituen)
 
 pcon_bustrips_23 <- Reduce(function(x, y) left_join(x, y, by = "lsoa11"),
                            list(lsoa_bustrips,
@@ -119,13 +106,18 @@ pcon_bustrips_23 <- pcon_bustrips_23 %>%
 
 
 pcon_bustrips_23 <- pcon_bustrips_23 %>%
-  mutate(tph0823_wtd_change = round(tph_2023_wtdmean - tph_2006_2008_wtdmean, 2)) %>%
-  mutate(tph0823_wtd_change_pct = round(tph0823_wtd_change / tph_2006_2008_wtdmean, 4)) %>%
+  mutate(tph0823_wtd_change = round(tph_2023_wtdmean - tph_2006_2008_wtdmean, 2),
+         tph1023_wtd_change = round(tph_2023_wtdmean - tph_2010_wtdmean, 2)) %>%
+  mutate(tph0823_wtd_change_pct = round(tph0823_wtd_change / tph_2006_2008_wtdmean, 4),
+         tph1023_wtd_change_pct = round(tph1023_wtd_change / tph_2010_wtdmean, 4)) %>%
   mutate(tph_2006_2008_mean = round(tph_2006_2008_mean, 2),
          tph_2006_2008_wtdmean = round(tph_2006_2008_wtdmean, 2),
+         tph_2010_mean = round(tph_2010_mean, 2),
+         tph_2010_wtdmean = round(tph_2010_wtdmean, 2),
          tph_2023_mean = round(tph_2023_mean, 2),
          tph_2023_wtdmean = round(tph_2023_wtdmean, 2)) %>%
   mutate(tph0823_wtd_change_percent = tph0823_wtd_change_pct * 100)
+
 
 source("../constituency-environmental-reports/scripts/geography-lookups.R")
 pcon23_boundaries <- get_pcon_boundaries_2023()

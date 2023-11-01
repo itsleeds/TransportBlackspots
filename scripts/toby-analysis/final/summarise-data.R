@@ -89,6 +89,89 @@ make_trend_summary <- function(la_bustrips_cleaned,
 }
 
 
+make_trend_summary_2010_23 <- function(la_bustrips_cleaned,
+                               geog,
+                               geog_code,
+                               geog_name) {
+
+  cleaned_bustrips_wide_years <- la_bustrips_cleaned %>%
+    filter(!is.na({{ geog_name }})) %>%
+    group_by({{ geog_code }},
+             {{ geog_name }},
+             period_name,
+             year) %>%
+    summarise(runs_cleaned = mean(runs_cleaned, na.rm = TRUE)) %>%
+    ungroup() %>%
+    spread(key = year,
+           value = runs_cleaned)
+
+  cleaned_bustrips_wide_years <- cleaned_bustrips_wide_years %>%
+    transmute({{ geog_code }},
+              {{ geog_name }},
+              period_name,
+              tph_2010 = `2010`,
+              tph_2023 = `2023`) %>%
+    mutate(tph_2010_2023_change = tph_2023 - tph_2010) %>%
+    mutate(tph_2010_2023_change_pct = tph_2010_2023_change / tph_2010)
+
+  # focus on key time periods
+  period_cols <- c("tph_weekday_Morning_Peak",
+                   #"tph_weekday_Midday",
+                   #"tph_weekday_Afternoon_Peak",
+                   "tph_weekday_Evening",
+                   #"tph_weekday_Night",
+                   #"tph_Sat_Morning_Peak",
+                   "tph_Sat_Midday",
+                   #"tph_Sat_Afternoon_Peak",
+                   #"tph_Sat_Evening",
+                   #"tph_Sat_Night",
+                   #"tph_Sun_Morning_Peak",
+                   #"tph_Sun_Midday"
+                   #",tph_Sun_Afternoon_Peak",
+                   #"tph_Sun_Evening",
+                   "tph_Sun_Night",
+                   "tph_daytime_avg")
+
+  cleaned_bustrips_wide_years <- cleaned_bustrips_wide_years %>%
+    filter(period_name %in% period_cols)
+
+  bustrips_summary <- cleaned_bustrips_wide_years %>%
+    rename(geogcd = {{ geog_code }},
+           geognm = {{ geog_name }}) %>%
+    select(geogcd, #{{ geog_code }},
+           geognm, #{{ geog_name }},
+           period_name,
+           tph_2010,
+           tph_2023,
+           tph_2010_2023_change_pct) %>%
+    gather(key = indicator,
+           value = val,
+           -geogcd,
+           -geognm,
+           -period_name) %>%
+    unite(full_indicator, period_name, indicator, sep = "_") %>%
+    spread(key = full_indicator,
+           value = val)
+
+  bustrips_summary <- bustrips_summary %>%
+    rename({{ geog_code }} := geogcd,
+           {{ geog_name }} := geognm)
+
+  # save outputs
+  if(!dir.exists("plots/aug-23")) {
+    dir.create("plots/aug-23")
+  }
+  summary_filename <- paste0("plots/aug-23/", geog, "-summary-of-bustrip-trends-2010-2023.csv")
+  message(paste0("Saving: ", summary_filename))
+  write.csv(bustrips_summary,
+            summary_filename,
+            row.names = FALSE,
+            na = "")
+
+  return(bustrips_summary)
+}
+
+
 make_graph_of_trends <- function(la_bustrips_cleaned,
                                  geog,
                                  geog_code,
@@ -240,15 +323,39 @@ make_national_trend_summaries <- function() {
                                             london_tube == "Outside London" ~ "Scotland",
                                             TRUE ~ london_tube))
 
+  # filter out Scotland
+  lsoa_bustrip_trends <- lsoa_bustrip_trends %>%
+    filter(grepl("^E|W", lsoa11))
+
   # summarise by location and period.
   overall_summary_of_trends <- lsoa_bustrip_trends %>%
     group_by(london_tube_rurality,
              period_name) %>%
     summarise(tph_2006_08 = round(mean(tph_2006_08), 1),
+              tph_2010 = round(mean(tph_2010), 1),
               tph_2023 = round(mean(tph_2023), 1)) %>%
     ungroup() %>%
-    mutate(tph_2006_2023_change = tph_2023 - tph_2006_08) %>%
-    mutate(tph_2006_2023_change_pct = round(tph_2006_2023_change / tph_2006_08, 3)) %>%
+    mutate(tph_2006_2023_change = tph_2023 - tph_2006_08,
+           tph_2010_2023_change = tph_2023 - tph_2010) %>%
+    mutate(tph_2006_2023_change_pct = round(tph_2006_2023_change / tph_2006_08, 3),
+           tph_2010_2023_change_pct = round(tph_2010_2023_change / tph_2010, 3)) %>%
+    arrange(period_name,
+            london_tube_rurality)
+
+  overall_summary_of_trends <- lsoa_bustrip_trends %>%
+    group_by(london_tube,
+             period_name) %>%
+    summarise(tph_2006_08 = round(mean(tph_2006_08), 1),
+              tph_2010 = round(mean(tph_2010), 1),
+              tph_2023 = round(mean(tph_2023), 1)) %>%
+    ungroup() %>%
+    mutate(tph_2006_2023_change = tph_2023 - tph_2006_08,
+           tph_2010_2023_change = tph_2023 - tph_2010) %>%
+    mutate(tph_2006_2023_change_pct = round(tph_2006_2023_change / tph_2006_08, 3),
+           tph_2010_2023_change_pct = round(tph_2010_2023_change / tph_2010, 3)) %>%
+    filter(london_tube == "Outside London") %>%
+    rename(london_tube_rurality = london_tube) %>%
+    bind_rows(overall_summary_of_trends, .) %>%
     arrange(period_name,
             london_tube_rurality)
 
@@ -256,6 +363,8 @@ make_national_trend_summaries <- function() {
   write.csv(overall_summary_of_trends,
             "plots/aug-23/national-trend-summary-tph.csv",
             row.names = FALSE)
+
+  return(overall_summary_of_trends)
 
 }
 
@@ -272,6 +381,11 @@ make_la_region_cauth_summary_tables_and_plots <- function(la_bustrips_cleaned,
                                               geog = "region",
                                               geog_code = RGN20CD,
                                               geog_name = RGN20NM)
+
+  region_bustrip_trends_2010_23 <<- make_trend_summary_2010_23(la_bustrips_cleaned,
+                                                               geog = "region",
+                                                               geog_code = RGN20CD,
+                                                               geog_name = RGN20NM)
 
   cauth_bustrip_trends <<- make_trend_summary(la_bustrips_cleaned,
                                              geog = "cauth",

@@ -367,23 +367,32 @@ simplify_tph_trends <- function(cleaned_bustrips_lsoa_wide_years) {
               region_name,
               period_name,
               tph_2006_08 = (`2006` + `2007` + `2008`) / 3,
+              tph_2010 = `2010`,
               tph_2023 = `2023`) %>%
     mutate(tph_2023 = ifelse(tph_2023 < 0, 0, tph_2023)) %>%
-    mutate(tph_2006_2023_change = tph_2023 - tph_2006_08) %>%
-    mutate(tph_2006_2023_change_pct = tph_2006_2023_change / tph_2006_08)
+    mutate(tph_2006_2023_change = tph_2023 - tph_2006_08,
+           tph_2010_2023_change = tph_2023 - tph_2010,) %>%
+    mutate(tph_2006_2023_change_pct = tph_2006_2023_change / tph_2006_08,
+           tph_2010_2023_change_pct = tph_2010_2023_change / tph_2010)
 
   # for those values with 0 services in 2006-08 and some in 2023, set these to pct = 2 to represent an increase
   bustrips_trends <- bustrips_trends %>%
     mutate(tph_2006_2023_change_pct = ifelse(tph_2006_08 == 0 & is.infinite(tph_2006_2023_change_pct),
                                              2,
-                                             tph_2006_2023_change_pct))
+                                             tph_2006_2023_change_pct),
+           tph_2010_2023_change_pct = ifelse(tph_2010 == 0 & is.infinite(tph_2010_2023_change_pct),
+                                             2,
+                                             tph_2010_2023_change_pct))
 
   # for those values with 0 services in 2006-08 and 0 in 2023, set these to pct = 0 to represent not change
   # Otherwise it comes out as NaN
   bustrips_trends <- bustrips_trends %>%
     mutate(tph_2006_2023_change_pct = ifelse(tph_2006_08 == 0 & is.nan(tph_2006_2023_change_pct),
                                              0,
-                                             tph_2006_2023_change_pct))
+                                             tph_2006_2023_change_pct),
+           tph_2010_2023_change_pct = ifelse(tph_2010 == 0 & is.nan(tph_2010_2023_change_pct),
+                                             0,
+                                             tph_2010_2023_change_pct))
 
 }
 
