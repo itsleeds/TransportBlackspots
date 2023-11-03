@@ -173,25 +173,32 @@ la_to_transport_authority_lup <- function() {
   # read in data set
   la_to_metro_lup <- read.csv("data/lsoa/Local_Authority_District_to_Combined_Authority_(April_2023)_Lookup_in_England.csv")
   la_to_metro_lup <- la_to_metro_lup %>%
-    select(oslaua = LAD23CD,
-           local_authority_name = LAD23NM,
-           trans_auth_code = CAUTH23CD,
-           trans_auth_name = CAUTH23NM)
+    transmute(oslaua = LAD23CD,
+              local_authority_name = LAD23NM,
+              trans_auth_code = CAUTH23CD,
+              trans_auth_name = CAUTH23NM,
+              auth_type = "combined-authority")
 
   oslaua_to_cty_lup <- make_oslaua_to_cty_lup()
   oslaua_to_cty_lup <- oslaua_to_cty_lup %>%
     rename(trans_auth_code = oscty,
-           trans_auth_name = county_name)
+           trans_auth_name = county_name) %>%
+    mutate(auth_type = "county-council")
 
   # cambridge is listed as a county council and a combined authority (Cambridge and Peterborough).
   # remove from county list as the combined authority is the transport authority
   oslaua_to_cty_lup <- oslaua_to_cty_lup %>%
     filter(!trans_auth_name == "Cambridgeshire")
 
+  # transport remit for york and north yorkshire is separate, so remove north yorkshire from cty
+  oslaua_to_cty_lup <- oslaua_to_cty_lup %>%
+    filter(!trans_auth_name == "North Yorkshire")
+
   london_authorities <- make_oslaua_to_london_lup()
   london_authorities <- london_authorities %>%
     rename(trans_auth_code = CAUTH23CD,
-           trans_auth_name = CAUTH23NM)
+           trans_auth_name = CAUTH23NM) %>%
+    mutate(auth_type = "greater-london-authority")
 
   oslaua_to_TA_lup <- bind_rows(la_to_metro_lup,
                                 oslaua_to_cty_lup,
@@ -207,8 +214,8 @@ la_to_transport_authority_lup <- function() {
   oslaua_to_TA_lup <- oslaua_to_TA_lup %>%
     mutate(trans_auth_code = ifelse(is.na(trans_auth_code), oslaua, trans_auth_code),
            trans_auth_name = ifelse(is.na(trans_auth_name), local_authority_name, trans_auth_name)) %>%
-    filter(grepl("^E|W", oslaua))
-
+    filter(grepl("^E|W", oslaua)) %>%
+    mutate(auth_type = ifelse(local_authority_name == trans_auth_name, "unitary-authority", auth_type))
 
 }
 
@@ -253,6 +260,12 @@ make_oslaua_to_cty_lup <- function() {
   # join names to data
   la_to_cty_lup <- left_join(la_to_cty_lup, cty_names, by = "oscty")
   la_to_cty_lup <- left_join(la_to_cty_lup, la_names, by = "oslaua")
+
+  # In April 2023, Cumbria county council ceased to exist, replace by westmorland and cumberland,
+  # And Somerset became a unitary authority, not a county council
+  la_to_cty_lup <- la_to_cty_lup %>%
+    filter(!county_name == "Cumbria") %>%
+    filter(!county_name == "Somerset")
 
   # filter for only counties (not unitary or metropolitan areas)
   la_to_cty_lup <- la_to_cty_lup %>%
@@ -326,6 +339,7 @@ make_map_data_transauth <- function() {
   transauth_bustrips_23 <- transauth_bustrips_23 %>%
     group_by(trans_auth_code,
              trans_auth_name,
+             auth_type,
              year_band) %>%
     summarise(tph = weighted.mean(runs_cleaned, population, na.rm = TRUE)) %>%
     ungroup()
@@ -358,6 +372,44 @@ pcon23_map_data <- make_map_data_pcon23()
 
 #  Transport authority data -------------------------------------
 transauth_map_data <- make_map_data_transauth()
+
+# make transport authority gis layer from combined authority, local authority, county council and region gis boundaries
+make_trans_auth_gis_layer <- function() {
+
+  simplify_gis_boundaries <- function(boundaries, col_numbers = c(1:2), filter = FALSE) {
+
+    boundaries <- boundaries[col_numbers]
+    colnames(boundaries) <- c("trans_auth_code", "trans_auth_name", "geometry")
+    return(boundaries)
+
+  }
+
+  la_boundaries <- simplify_gis_boundaries(st_read("../gis-data/boundaries/local-authority/Local_Authority_Districts_May_2023_UK_BFC_V2/LAD_MAY_2023_UK_BFC_V2.shp"),)
+  cty_boundaries <- simplify_gis_boundaries(st_read("../gis-data/boundaries/counties/Counties_May_2023_Boundaries_EN_BFC/CTY_MAY_2023_EN_BFC.shp"))
+  cauth_boundaries <- simplify_gis_boundaries(st_read("../gis-data/boundaries/combined-authorities/Combined_Authorities_December_2022_EN_BFC/CAUTH_DEC_2022_EN_BFC.shp"))
+  regions <- simplify_gis_boundaries(st_read("../gis-data/boundaries/regions/Regions_(December_2020)_EN_BFC/Regions_(December_2020)_EN_BFC.shp"),
+                                     col_numbers = c(2:3))
+
+  trans_auth_boundaries <- bind_rows(la_boundaries,
+                                     cty_boundaries,
+                                     cauth_boundaries,
+                                     regions)
+
+
+  trans_auth_boundaries <- inner_join(trans_auth_boundaries, transauth_map_data, by = c("trans_auth_code", "trans_auth_name"))
+
+  trans_auth_boundaries <- trans_auth_boundaries %>%
+    select(TA_code = trans_auth_code,
+           TA_name = trans_auth_name,
+           geometry)
+
+  st_write(trans_auth_boundaries,
+           dsn = "../gis-data/boundaries/transport-authorities/Transport_authorities_April23/Transport_authorities_April23.shp",
+           delete_dsn = TRUE)
+
+}
+
+
 
 save_map_layer_data <- function(df,
                                 filepath) {

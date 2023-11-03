@@ -1,4 +1,4 @@
-reload = FALSE
+reload = TRUE
 # set up, includes loading packages and sourcing scripts
 clear_all = reload
 source("scripts/toby-analysis/final/set-up.R")
