@@ -1,5 +1,6 @@
-remotes::install_github("ITSleeds/UK2GTFS", upgrade = "never")
+#remotes::install_github("ITSleeds/UK2GTFS", upgrade = "never")
 library(UK2GTFS)
+#load_data("naptan_replace")
 
 base_path = "D:/OneDrive - University of Leeds/Data/UK2GTFS/TransXChange"
 naptan = get_naptan()
@@ -10,7 +11,7 @@ if(!dir.exists(file.path(base_path,"GTFS"))){dir.create(file.path(base_path,"GTF
 
 # dates
 dates = c("20180515","20191008","20200701","20211012","20221102", "20230503")
-
+dates = dates[length(dates):1]
 
 for(i in seq_along(dates)){
   message(dates[i])
@@ -43,7 +44,7 @@ for(i in seq_along(dates)){
     gtfs <- gtfs_clean(gtfs)
 
     # Fix known errors
-    naptan_replace <- UK2GTFS::naptan_replace
+    load_data("naptan_replace")
     naptan_replace <- naptan_replace[naptan_replace$stop_id %in% gtfs$stops$stop_id,]
     message("Replacing ",nrow(naptan_replace)," stop locations with values from UK2GTFS")
     gtfs$stops <- gtfs$stops[!gtfs$stops$stop_id %in% naptan_replace$stop_id,]

@@ -26,7 +26,7 @@ stop("End of R Code")
 
 
 ## Bash
-cd /mnt/d/GitHub/ITSLeeds/TransportBlackspots/data
+cd /mnt/f/GitHub/ITSLeeds/TransportBlackspots/data
 
 tippecanoe -o lsoa.pmtiles \
 --name=lsoa \

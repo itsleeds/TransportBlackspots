@@ -1,4 +1,4 @@
-remotes::install_github("ITSleeds/UK2GTFS", upgrade = "never")
+#remotes::install_github("ITSleeds/UK2GTFS", upgrade = "never")
 library(UK2GTFS)
 source("R/stops_per_week_functions.R")
 base_path = "D:/OneDrive - University of Leeds/Data/UK2GTFS/TransXChange/GTFS"

@@ -74,6 +74,10 @@ if(file.exists("data/GB_LSOA_2011_full_or_500mBuff.Rds")){
 #stops_sf = gtfs_stops_sf(gtfs)
 #qtm(stops_sf)
 
+i = "E01011349"
+qtm(lsoa[lsoa$code == i,]) +
+  qtm(zone[zone$code == i,], fill = NULL, borders = "red") +
+  qtm(lsoa_cents[lsoa_cents$code == i,], dots.col = "blue")
 
 # TODO: NA lsoa returned
 # zone_service = gtfs_trips_per_zone(gtfs, zone)
