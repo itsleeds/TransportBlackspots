@@ -67,3 +67,7 @@ data/routes.zip
 www/lsoa_old.pmtiles
 data/lsoa.pmtiles
 data/lsoa.pmtiles
+data/trips_per_la_by_mode_2004_2023_onemonth.Rds
+data/trips_per_la_by_mode_2023_onemonth.Rds
+data/trips_per_lsoa_by_mode_2004_2023_onemonth.Rds
+data/trips_per_lsoa_by_mode_2023_onemonth.Rds

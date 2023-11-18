@@ -1,4 +1,4 @@
-remotes::install_github("ITSleeds/UK2GTFS", upgrade = "never")
+#remotes::install_github("ITSleeds/UK2GTFS", upgrade = "never")
 library(UK2GTFS)
 
 base_path = "D:/OneDrive - University of Leeds/Data/UK2GTFS/Bus Archive"
@@ -12,7 +12,7 @@ skip_done = TRUE
 # Crash during time interpolation fail at 17%
 # 2 nodes produced errors; first error: conversion of times failed for tripID: 16110
 
-for(j in 2015){
+for(j in 2014:2017){
   gc()
   year = paste0(j," Oct")
 
@@ -47,7 +47,7 @@ for(j in 2015){
       gtfs = gtfs_clean(gtfs)
 
       # Fix known errors
-      naptan_replace <- UK2GTFS::naptan_replace
+      load_data("naptan_replace")
       naptan_replace <- naptan_replace[naptan_replace$stop_id %in% gtfs$stops$stop_id,]
       message("Replacing ",nrow(naptan_replace)," stop locations with values from UK2GTFS")
       gtfs$stops <- gtfs$stops[!gtfs$stops$stop_id %in% naptan_replace$stop_id,]
@@ -95,7 +95,7 @@ for(j in 2015){
       gtfs = gtfs_clean(gtfs)
 
       # Fix known errors
-      naptan_replace <- UK2GTFS::naptan_replace
+      load_data("naptan_replace")
       naptan_replace <- naptan_replace[naptan_replace$stop_id %in% gtfs$stops$stop_id,]
       message("Replacing ",nrow(naptan_replace)," stop locations with values from UK2GTFS")
       gtfs$stops <- gtfs$stops[!gtfs$stops$stop_id %in% naptan_replace$stop_id,]

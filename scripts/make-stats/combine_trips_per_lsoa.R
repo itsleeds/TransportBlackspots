@@ -2,7 +2,7 @@ library(tmap)
 library(ggplot2)
 library(dplyr)
 
-lamode = TRUE
+lamode = FALSE
 
 zone = readRDS("data/GB_LSOA_2011_super_generalised.Rds")
 zone_service <- list()
