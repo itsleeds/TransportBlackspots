@@ -11,8 +11,9 @@ if(!dir.exists(file.path(base_path,"GTFS"))){dir.create(file.path(base_path,"GTF
 
 # dates
 #dates = c("20180515","20191008","20200701","20211012","20221102", "20230503")
+dates = c("20180515","20191008")
 #dates = dates[length(dates):1]
-dates = "20231101"
+#dates = "20231101"
 
 for(i in seq_along(dates)){
   message(dates[i])
@@ -21,7 +22,7 @@ for(i in seq_along(dates)){
   dir.create(file.path(base_path,"GTFS",paste0("GTFS_",dates[i])))
 
   for(j in seq_along(zps)){
-
+  #for(j in 8:12){
 
     nm = strsplit(zps[j], "/", fixed = TRUE)[[1]]
     nm = nm[length(nm)]

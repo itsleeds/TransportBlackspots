@@ -6,8 +6,8 @@ base_path = "D:/OneDrive - University of Leeds/Data/UK2GTFS/TransXChange/GTFS"
 yrs = list.dirs(base_path)
 yrs = yrs[yrs != base_path]
 yrs = yrs[!grepl("v1",yrs)]
-#yrs = yrs[!grepl("20201102",yrs)]
-#yrs = yrs[6]
+yrs = yrs[grepl("20231101",yrs)]
+
 
 
 for(j in seq_along(yrs)){
