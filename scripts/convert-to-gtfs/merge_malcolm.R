@@ -15,8 +15,8 @@ for(j in seq_along(yrs)){
   fls = list.files(yrs[j], full.names = TRUE)
 
   wks <- substr(yrs[j],nchar(yrs[j])-7,nchar(yrs[j]))
-  date_start <- lubridate::ymd(wks)
-  date_end <- date_start + 31
+  date_start <- lubridate::ymd(wks) - 31
+  date_end <- date_start + 62
 
   gtfs_all <- list()
 

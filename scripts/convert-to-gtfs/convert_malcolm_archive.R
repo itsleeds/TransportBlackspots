@@ -10,8 +10,9 @@ skip_done = TRUE
 if(!dir.exists(file.path(base_path,"GTFS"))){dir.create(file.path(base_path,"GTFS"))}
 
 # dates
-dates = c("20180515","20191008","20200701","20211012","20221102", "20230503")
-dates = dates[length(dates):1]
+#dates = c("20180515","20191008","20200701","20211012","20221102", "20230503")
+#dates = dates[length(dates):1]
+dates = "20231101"
 
 for(i in seq_along(dates)){
   message(dates[i])
@@ -26,7 +27,7 @@ for(i in seq_along(dates)){
     nm = nm[length(nm)]
     nm = gsub(".zip","",nm)
 
-    if(file.exists(file.path(base_path,"GTFS",paste0("GTFS_",dates[i]),paste0(nm,".zip")))){
+    if(file.exists(file.path(base_path,"GTFS",paste0("GTFS_",dates[i]),paste0(nm,".zip"))) & skip_done){
       message("skipping ",nm)
       next
     } else {
