@@ -1,11 +1,11 @@
-remotes::install_github("ITSleeds/UK2GTFS", upgrade = "never")
+#remotes::install_github("ITSleeds/UK2GTFS", upgrade = "never")
 library(UK2GTFS)
 
 base_path = "D:/OneDrive - University of Leeds/Data/UK2GTFS/Bus Archive/GTFS"
 source("R/stops_per_week_functions.R")
 
 
-for(yr in 2015){
+for(yr in 2014:2017){
   #yr = 2014
   message(yr)
   files = list.files(file.path(base_path,paste0(yr," Oct")))
