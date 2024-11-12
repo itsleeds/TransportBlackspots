@@ -27,6 +27,7 @@ load_packages()
 
 #' source required function building scripts.
 source("scripts/november-24/process-lsoa-data.R")
+source("scripts/november-24/classify-service-quality.R")
 
 source("scripts/november-24/onspd.R")
 

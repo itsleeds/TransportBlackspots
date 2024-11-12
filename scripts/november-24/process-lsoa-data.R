@@ -4,7 +4,7 @@
 #' Processing needs to omit any outliers in the lsoa data first
 
 # read in lsoa bus data
-load_lsoa_bustrips <- function() {
+load_lsoa_bustrips <- function(onspd, year_list) {
 
   # read in all data
   trips_lsoa <- readRDS("data/trips_per_lsoa_by_mode_2004_2023.Rds")
@@ -17,12 +17,73 @@ load_lsoa_bustrips <- function() {
   bustrips_lsoa <- bustrips_lsoa %>%
     filter(!is.na(zone_id))
 
-  # rename fields
-  #bustrips_lsoa <- bustrips_lsoa %>%
-  #  rename(lsoa11 = zone_id)
+  # select year
+  bustrips_lsoa <- bustrips_lsoa %>%
+    filter(year %in% year_list)
 
   # identify london underground lsoas
   bustrips_lsoa <- add_london_metro_lsoas(bustrips_lsoa, trips_lsoa)
+
+  # identify rurality (keeps only england and wales LSOAs)
+  bustrips_lsoa <- identify_lsoa_rurality(bustrips_lsoa, onspd)
+
+  # keep fields of interest only
+  bustrips_lsoa <- bustrips_lsoa %>%
+    select(lsoa11 = zone_id,
+           route_type,
+           year,
+           london_underground,
+           ru11ind,
+           urban_rural_cat,
+           rurality,
+           #routes_Morning_Peak,
+           #routes_Midday,
+           #routes_Afternoon_Peak,
+           #routes_Evening,
+           #routes_Night,
+           #runs_weekday_Morning_Peak,
+           #runs_weekday_Midday,
+           #runs_weekday_Afternoon_Peak,
+           #runs_weekday_Evening,
+           #runs_weekday_Night,
+           #runs_Sat_Morning_Peak,
+           #runs_Sat_Midday,
+           #runs_Sat_Afternoon_Peak,
+           #runs_Sat_Evening,
+           #runs_Sat_Night,
+           #runs_Sun_Morning_Peak,
+           #runs_Sun_Midday,
+           #runs_Sun_Afternoon_Peak,
+           #runs_Sun_Evening,
+           #runs_Sun_Night,
+           tph_weekday_Morning_Peak,
+           tph_weekday_Midday,
+           tph_weekday_Afternoon_Peak,
+           tph_weekday_Evening,
+           tph_weekday_Night,
+           tph_Sat_Morning_Peak,
+           tph_Sat_Midday,
+           tph_Sat_Afternoon_Peak,
+           tph_Sat_Evening,
+           tph_Sat_Night,
+           tph_Sun_Morning_Peak,
+           tph_Sun_Midday,
+           tph_Sun_Afternoon_Peak,
+           tph_Sun_Evening,
+           tph_Sun_Night,
+           tph_daytime_avg,
+           #LAD17NM,
+           #RGN11NM,
+           )
+
+  # keep only england and wales LSOAs
+  # lsoa_list <- onspd %>%
+  #   distinct(lsoa11) %>%
+  #   filter(grepl("^E|^W", substring(lsoa11, 1, 1)))
+
+  # bustrips_lsoa <- left_join(lsoa_list, bustrips_lsoa, by = "lsoa11")
+
+  return(bustrips_lsoa)
 
 }
 
@@ -71,8 +132,17 @@ add_london_metro_lsoas <- function(bustrips_lsoa, trips_lsoa) {
 identify_lsoa_rurality <- function(trips_lsoa, onspd) {
 
   lsoa_rurality <- onspd %>%
-    distinct(lsoa11,
-             ru11ind)
+    group_by(lsoa11,
+             ru11ind) %>%
+    summarise(postcode_count = n()) %>%
+    group_by(lsoa11) %>%
+    slice_max(postcode_count,
+              n = 1,
+              with_ties = FALSE) %>%
+    ungroup() %>%
+    select(lsoa11,
+           ru11ind) %>%
+    filter(grepl("^E|^W", substring(lsoa11, 1, 1)))
 
   rurality_lookup <- data.frame(ru11ind = c("A1", "B1", "C1", "C2", "D1", "D2", "E1", "E2", "F1", "F2"),
                                 urban_rural_cat = c("Urban: Major Conurbation",
@@ -96,6 +166,14 @@ identify_lsoa_rurality <- function(trips_lsoa, onspd) {
                                              "Rural: Village/Hamlets/Isolated Dwellings",
                                              "Rural: Village/Hamlets/Isolated Dwellings"))
 
+  lsoa_rurality <- left_join(lsoa_rurality, rurality_lookup, by = "ru11ind")
+  #table(substring(lsoa_rurality$lsoa11, 1, 1),
+  #      lsoa_rurality$rurality,
+  #      useNA = "ifany")
 
+  lsoa_rurality <- lsoa_rurality %>%
+    rename(zone_id = lsoa11)
+
+  trips_lsoa  <- left_join(lsoa_rurality, trips_lsoa, by = "zone_id")
 
 }

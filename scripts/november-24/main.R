@@ -27,3 +27,26 @@
 #'  - Produce a national, regional, constituency and local authority analysis
 #'    summarising the number of LSOAs in each rating for each time interval
 
+
+clear_all = FALSE
+source("scripts/november-24/set-up.R")
+
+
+lsoa_bustrips_2023 <- load_lsoa_bustrips(onspd, year_list = 2023)
+# lsoa_bustrips_2023 <- lsoa_bustrips_2023 %>%
+#   filter(grepl("^E|^W", substring(lsoa11, 1, 1)))
+
+table(substring(lsoa_bustrips_2023$lsoa11, 1, 1),
+      lsoa_bustrips_2023$rurality, useNA = "ifany")
+table(substring(lsoa_bustrips_2023$lsoa11, 1, 1),
+      is.na(lsoa_bustrips_2023$tph_weekday_Morning_Peak), useNA = "ifany")
+
+lsoa_bustrips_2023 <- classify_service_quality(lsoa_bustrips_2023)
+
+hist(lsoa_bustrips_2023$overall_service_score)
+hist(lsoa_bustrips_2023$weeklong_good_duration, breaks = 20)
+
+make_map_of_bus_service(lsoa_bustrips_2023)
+make_map_of_bus_service_score(lsoa_bustrips_2023)
+make_map_of_bus_good_service_duration(lsoa_bustrips_2023)
+
