@@ -36,11 +36,11 @@ load_lsoa_bustrips <- function(onspd, year_list) {
            ru11ind,
            urban_rural_cat,
            rurality,
-           #routes_Morning_Peak,
-           #routes_Midday,
-           #routes_Afternoon_Peak,
-           #routes_Evening,
-           #routes_Night,
+           routes_Morning_Peak,
+           routes_Midday,
+           routes_Afternoon_Peak,
+           routes_Evening,
+           routes_Night,
            #runs_weekday_Morning_Peak,
            #runs_weekday_Midday,
            #runs_weekday_Afternoon_Peak,
@@ -75,6 +75,14 @@ load_lsoa_bustrips <- function(onspd, year_list) {
            #LAD17NM,
            #RGN11NM,
            )
+
+  bustrips_lsoa <- bustrips_lsoa %>%
+    mutate(max_number_routes = pmax(routes_Morning_Peak, routes_Midday, routes_Afternoon_Peak, routes_Evening, routes_Night)) %>%
+    select(-routes_Morning_Peak,
+           -routes_Midday,
+           -routes_Afternoon_Peak,
+           -routes_Evening,
+           -routes_Night)
 
   # keep only england and wales LSOAs
   # lsoa_list <- onspd %>%

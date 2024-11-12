@@ -54,11 +54,19 @@ classify_service_quality <- function(lsoa_bustrips) {
   # calculate good service duration?
   lsoa_bustrips <- calculate_good_service_duration(lsoa_bustrips)
 
-  #' remove intermediate values? [TODO]
+  # calculate all service duration
+  lsoa_bustrips <- calculate_all_service_duration(lsoa_bustrips)
+
+  #' remove intermediate values?
+  lsoa_bustrips <- tidy_bustrips_data(lsoa_bustrips)
+
 
 }
 
-calculate_good_service_duration <- function(lsoa_bustrips) {
+# this calculates the duration of good services across the day/evening/week. Maximum duration of good weekly service is 48 hours*
+# Or should that be weekday*5 + sat + sun = 16*5 + 16 + 16 = 112?
+
+calculate_good_service_duration <- function(lsoa_bustrips, weekday_multiplier = 1) {
 
   if_one_else_none <- function(x, hours) ifelse(x == 1, 1, 0) * hours
 
@@ -66,111 +74,89 @@ calculate_good_service_duration <- function(lsoa_bustrips) {
     mutate(weekday_good_duration = if_one_else_none(tph_weekday_Morning_Peak_score, 4) + if_one_else_none(tph_weekday_Midday_score, 5) + if_one_else_none(tph_weekday_Afternoon_Peak_score, 3) + if_one_else_none(tph_weekday_Evening_score, 4),
            saturday_good_duration = if_one_else_none(tph_Sat_Morning_Peak_score, 4) + if_one_else_none(tph_Sat_Midday_score, 5) + if_one_else_none(tph_Sat_Afternoon_Peak_score, 3) + if_one_else_none(tph_Sat_Evening_score, 4),
            sunday_good_duration = if_one_else_none(tph_Sun_Morning_Peak_score, 4) + if_one_else_none(tph_Sun_Midday_score, 5) + if_one_else_none(tph_Sun_Afternoon_Peak_score, 3) + if_one_else_none(tph_Sun_Evening_score, 4)) %>%
-    mutate(weeklong_good_duration = weekday_good_duration + saturday_good_duration + sunday_good_duration)
+    mutate(weeklong_good_duration = (weekday_good_duration * weekday_multiplier) + saturday_good_duration + sunday_good_duration)
 
 
 }
 
+# this calculates duration of service regardless of frequency.
+calculate_all_service_duration <- function(lsoa_bustrips, weekday_multiplier = 1) {
 
+  # if above zero then count and multiple by hours of period, otherwise 0.
+  if_some_else_none <- function(x, hours) if_else(round(x) > 0, 1, 0) * hours
 
-make_map_of_bus_service <- function(lsoa_bustrips) {
-
-  lsoa_bustrips_daytime <- lsoa_bustrips %>%
-    select(lsoa11,
-           rurality,
-           tph_weekday_Morning_Peak = round(tph_weekday_Morning_Peak, 1),
-           tph_weekday_Morning_Peak_service)
-
-  lsoas <- st_read("../gis-data/boundaries/lsoa/LSOA_2011_EW_BSC_V4/LSOA_2011_EW_BSC_V4.shp",
-                   quiet = TRUE)
-  lsoas <- lsoas %>%
-    select(lsoa11 = LSOA11CD,
-           geometry)
-
-  lsoa_bustrips_daytime <- left_join(lsoas, lsoa_bustrips_daytime, by = "lsoa11")
-  #lsoa_bustrips_daytime <- lsoa_bustrips_daytime %>%
-  #  mutate(tph_weekday_Morning_Peak_service = ifelse(is.na(tph_weekday_Morning_Peak_service), "No buses", tph_weekday_Morning_Peak_service))
-
-  tmap_mode("view")
-
-  tm_shape(lsoa_bustrips_daytime) +
-    tm_polygons(fill = "tph_weekday_Morning_Peak_service",
-                fill.scale = tm_scale_categorical(values = "-rd_yl_gn"),
-                col_alpha = 0,
-                popup.vars = c("lsoa11",
-                               "rurality",
-                               "tph_weekday_Morning_Peak",
-                               "tph_weekday_Morning_Peak_service"))
+  lsoa_bustrips <- lsoa_bustrips %>%
+    mutate(weekday_duration = if_some_else_none(tph_weekday_Morning_Peak, 4) + if_some_else_none(tph_weekday_Midday, 5) + if_some_else_none(tph_weekday_Afternoon_Peak, 3) + if_some_else_none(tph_weekday_Evening, 4),
+           saturday_duration = if_some_else_none(tph_Sat_Morning_Peak, 4) + if_some_else_none(tph_Sat_Midday, 5) + if_some_else_none(tph_Sat_Afternoon_Peak, 3) + if_some_else_none(tph_Sat_Evening, 4),
+           sunday_duration = if_some_else_none(tph_Sun_Morning_Peak, 4) + if_some_else_none(tph_Sun_Midday, 5) + if_some_else_none(tph_Sun_Afternoon_Peak, 3) + if_some_else_none(tph_Sun_Evening, 4)) %>%
+    mutate(weeklong_duration = (weekday_duration * weekday_multiplier) + saturday_duration + sunday_duration)
 
 }
 
+tidy_bustrips_data <- function(lsoa_bustrips) {
 
-make_map_of_bus_service_score <- function(lsoa_bustrips) {
-
-  lsoa_bustrips_daytime <- lsoa_bustrips %>%
+  lsoa_bustrips <- lsoa_bustrips %>%
     select(lsoa11,
+           #route_type,
+           year,
+           london_underground,
+           #ru11ind,
+           urban_rural_cat,
            rurality,
+           max_number_routes,
+           tph_weekday_Morning_Peak,
+           tph_weekday_Midday,
+           tph_weekday_Afternoon_Peak,
+           tph_weekday_Evening,
+           tph_weekday_Night,
+           tph_Sat_Morning_Peak,
+           tph_Sat_Midday,
+           tph_Sat_Afternoon_Peak,
+           tph_Sat_Evening,
+           tph_Sat_Night,
+           tph_Sun_Morning_Peak,
+           tph_Sun_Midday,
+           tph_Sun_Afternoon_Peak,
+           tph_Sun_Evening,
+           tph_Sun_Night,
+           tph_daytime_avg,
+           # tph_weekday_Morning_Peak_service,
+           # tph_weekday_Morning_Peak_score,
+           # tph_weekday_Midday_service,
+           # tph_weekday_Midday_score,
+           # tph_weekday_Afternoon_Peak_service,
+           # tph_weekday_Afternoon_Peak_score,
+           # tph_weekday_Evening_service,
+           # tph_weekday_Evening_score,
+           # tph_Sat_Morning_Peak_service,
+           # tph_Sat_Morning_Peak_score,
+           # tph_Sat_Midday_service,
+           # tph_Sat_Midday_score,
+           # tph_Sat_Afternoon_Peak_service,
+           # tph_Sat_Afternoon_Peak_score,
+           # tph_Sat_Evening_service,
+           # tph_Sat_Evening_score,
+           # tph_Sun_Morning_Peak_service,
+           # tph_Sun_Morning_Peak_score,
+           # tph_Sun_Midday_service,
+           # tph_Sun_Midday_score,
+           # tph_Sun_Afternoon_Peak_service,
+           # tph_Sun_Afternoon_Peak_score,
+           # tph_Sun_Evening_service,
+           # tph_Sun_Evening_score,
+           # tph_daytime_avg_service,
+           # tph_daytime_avg_score,
            weekday_service_score,
            saturday_service_score,
            sunday_service_score,
-           overall_service_score)
-
-  lsoas <- st_read("../gis-data/boundaries/lsoa/LSOA_2011_EW_BSC_V4/LSOA_2011_EW_BSC_V4.shp",
-                   quiet = TRUE)
-  lsoas <- lsoas %>%
-    select(lsoa11 = LSOA11CD,
-           geometry)
-
-  lsoa_bustrips_daytime <- left_join(lsoas, lsoa_bustrips_daytime, by = "lsoa11")
-  #lsoa_bustrips_daytime <- lsoa_bustrips_daytime %>%
-  #  mutate(tph_weekday_Morning_Peak_service = ifelse(is.na(tph_weekday_Morning_Peak_service), "No buses", tph_weekday_Morning_Peak_service))
-
-  tmap_mode("view")
-
-  tm_shape(lsoa_bustrips_daytime) +
-    tm_polygons(fill = "overall_service_score",
-                fill.scale = tm_scale_continuous(values = "rd_yl_gn"),
-                col_alpha = 0,
-                popup.vars = c("lsoa11",
-                               "rurality",
-                               "weekday_service_score",
-                               "saturday_service_score",
-                               "sunday_service_score",
-                               "overall_service_score"))
-
-}
-
-make_map_of_bus_good_service_duration <- function(lsoa_bustrips) {
-
-  lsoa_bustrips_daytime <- lsoa_bustrips %>%
-    select(lsoa11,
-           rurality,
+           overall_service_score,
            weekday_good_duration,
            saturday_good_duration,
            sunday_good_duration,
-           weeklong_good_duration)
-
-  lsoas <- st_read("../gis-data/boundaries/lsoa/LSOA_2011_EW_BSC_V4/LSOA_2011_EW_BSC_V4.shp",
-                   quiet = TRUE)
-  lsoas <- lsoas %>%
-    select(lsoa11 = LSOA11CD,
-           geometry)
-
-  lsoa_bustrips_daytime <- left_join(lsoas, lsoa_bustrips_daytime, by = "lsoa11")
-  #lsoa_bustrips_daytime <- lsoa_bustrips_daytime %>%
-  #  mutate(tph_weekday_Morning_Peak_service = ifelse(is.na(tph_weekday_Morning_Peak_service), "No buses", tph_weekday_Morning_Peak_service))
-
-  tmap_mode("view")
-
-  tm_shape(lsoa_bustrips_daytime) +
-    tm_polygons(fill = "weeklong_good_duration",
-                fill.scale = tm_scale_continuous(values = "rd_yl_gn"),
-                col_alpha = 0,
-                popup.vars = c("lsoa11",
-                               "rurality",
-                               "weekday_good_duration",
-                               "saturday_good_duration",
-                               "sunday_good_duration",
-                               "weeklong_good_duration"))
+           weeklong_good_duration,
+           weekday_duration,
+           saturday_duration,
+           sunday_duration,
+           weeklong_duration)
 
 }
