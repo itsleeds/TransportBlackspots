@@ -28,9 +28,19 @@ load_packages()
 #' source required function building scripts.
 source("scripts/november-24/process-lsoa-data.R")
 source("scripts/november-24/classify-service-quality.R")
+source("scripts/november-24/classify-service-quality-quintiles.R")
+source("scripts/november-24/socio-dems.R")
 source("scripts/november-24/outputs.R")
 
 source("scripts/november-24/onspd.R")
 
 options(dplyr.summarise.inform = FALSE)
 options(dplyr.show_progress = TRUE)
+
+if(!dir.exists("outputs/november-24")) {
+  dir.create("outputs/november-24")
+}
+
+if(!dir.exists("outputs/november-24/plots")) {
+  dir.create("outputs/november-24/plots")
+}

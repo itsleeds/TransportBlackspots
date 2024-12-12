@@ -1,31 +1,40 @@
 
 service_quality <- function(lsoa_bustrips, tph) {
 
+  urban_good <- 60
+  urban_poor <- 30
+  city_good <- 30
+  city_poor <- 15
+  town_good <- 12
+  town_poor <- 6
+  village_good <- 9
+  village_poor <- 4
+
   lsoa_bustrips <- lsoa_bustrips %>%
-    mutate("{{ tph }}_service" := case_when(rurality == "Urban: Conurbation" & round({{ tph }}) >= 60 ~ "Good",
-                                         rurality == "Urban: Conurbation" & round({{ tph }}) < 60 & round({{ tph }}) >= 30 ~ "Okay",
-                                         rurality == "Urban: Conurbation" & round({{ tph }}) < 30 ~ "Poor",
-                                         rurality == "Urban: City and Town" & round({{ tph }}) >= 30 ~ "Good",
-                                         rurality == "Urban: City and Town" & round({{ tph }}) < 30 & round({{ tph }}) >= 15 ~ "Okay",
-                                         rurality == "Urban: City and Town" & round({{ tph }}) < 15 ~ "Poor",
-                                         rurality == "Rural: Town and Fringe" & round({{ tph }}) >= 12 ~ "Good",
-                                         rurality == "Rural: Town and Fringe" & round({{ tph }}) < 12 & round({{ tph }}) >= 6 ~ "Okay",
-                                         rurality == "Rural: Town and Fringe" & round({{ tph }}) < 6 ~ "Poor",
-                                         rurality == "Rural: Village/Hamlets/Isolated Dwellings" & round({{ tph }}) >= 9 ~ "Good",
-                                         rurality == "Rural: Village/Hamlets/Isolated Dwellings" & round({{ tph }}) < 9 & round({{ tph }}) >= 4 ~ "Okay",
-                                         rurality == "Rural: Village/Hamlets/Isolated Dwellings" & round({{ tph }}) < 4 ~ "Poor")) %>%
-    mutate("{{ tph }}_score" := case_when(rurality == "Urban: Conurbation" & round({{ tph }}) >= 60 ~ 1,
-                                            rurality == "Urban: Conurbation" & round({{ tph }}) < 60 & round({{ tph }}) >= 30 ~ 0.5,
-                                            rurality == "Urban: Conurbation" & round({{ tph }}) < 30 ~ 0,
-                                            rurality == "Urban: City and Town" & round({{ tph }}) >= 30 ~ 1,
-                                            rurality == "Urban: City and Town" & round({{ tph }}) < 30 & round({{ tph }}) >= 15 ~ 0.5,
-                                            rurality == "Urban: City and Town" & round({{ tph }}) < 15 ~ 0,
-                                            rurality == "Rural: Town and Fringe" & round({{ tph }}) >= 12 ~ 1,
-                                            rurality == "Rural: Town and Fringe" & round({{ tph }}) < 12 & round({{ tph }}) >= 6 ~ 0.5,
-                                            rurality == "Rural: Town and Fringe" & round({{ tph }}) < 6 ~ 0,
-                                            rurality == "Rural: Village/Hamlets/Isolated Dwellings" & round({{ tph }}) >= 9 ~ 1,
-                                            rurality == "Rural: Village/Hamlets/Isolated Dwellings" & round({{ tph }}) < 9 & round({{ tph }}) >= 4 ~ 0.5,
-                                            rurality == "Rural: Village/Hamlets/Isolated Dwellings" & round({{ tph }}) < 4 ~ 0))
+    mutate("{{ tph }}_service" := case_when(rurality == "Urban: Conurbation" & round({{ tph }}) >= urban_good ~ "Good",
+                                            rurality == "Urban: Conurbation" & round({{ tph }}) < urban_good & round({{ tph }}) >= urban_poor ~ "Okay",
+                                            rurality == "Urban: Conurbation" & round({{ tph }}) < urban_poor ~ "Poor",
+                                            rurality == "Urban: City and Town" & round({{ tph }}) >= city_good ~ "Good",
+                                            rurality == "Urban: City and Town" & round({{ tph }}) < city_good & round({{ tph }}) >= city_poor ~ "Okay",
+                                            rurality == "Urban: City and Town" & round({{ tph }}) < city_poor ~ "Poor",
+                                            rurality == "Rural: Town and Fringe" & round({{ tph }}) >= town_good ~ "Good",
+                                            rurality == "Rural: Town and Fringe" & round({{ tph }}) < town_good & round({{ tph }}) >= town_poor ~ "Okay",
+                                            rurality == "Rural: Town and Fringe" & round({{ tph }}) < town_poor ~ "Poor",
+                                            rurality == "Rural: Village/Hamlets/Isolated Dwellings" & round({{ tph }}) >= village_good ~ "Good",
+                                            rurality == "Rural: Village/Hamlets/Isolated Dwellings" & round({{ tph }}) < village_good & round({{ tph }}) >= village_poor ~ "Okay",
+                                            rurality == "Rural: Village/Hamlets/Isolated Dwellings" & round({{ tph }}) < village_poor ~ "Poor")) %>%
+    mutate("{{ tph }}_score" := case_when(rurality == "Urban: Conurbation" & round({{ tph }}) >= urban_good ~ 1,
+                                          rurality == "Urban: Conurbation" & round({{ tph }}) < urban_good & round({{ tph }}) >= urban_poor ~ 0.5,
+                                          rurality == "Urban: Conurbation" & round({{ tph }}) < urban_poor ~ 0,
+                                          rurality == "Urban: City and Town" & round({{ tph }}) >= city_good ~ 1,
+                                          rurality == "Urban: City and Town" & round({{ tph }}) < city_good & round({{ tph }}) >= city_poor ~ 0.5,
+                                          rurality == "Urban: City and Town" & round({{ tph }}) < city_poor ~ 0,
+                                          rurality == "Rural: Town and Fringe" & round({{ tph }}) >= town_good ~ 1,
+                                          rurality == "Rural: Town and Fringe" & round({{ tph }}) < town_good & round({{ tph }}) >= town_poor ~ 0.5,
+                                          rurality == "Rural: Town and Fringe" & round({{ tph }}) < town_poor ~ 0,
+                                          rurality == "Rural: Village/Hamlets/Isolated Dwellings" & round({{ tph }}) >= village_good ~ 1,
+                                          rurality == "Rural: Village/Hamlets/Isolated Dwellings" & round({{ tph }}) < village_good & round({{ tph }}) >= village_poor ~ 0.5,
+                                          rurality == "Rural: Village/Hamlets/Isolated Dwellings" & round({{ tph }}) < village_poor ~ 0))
 }
 
 classify_service_quality <- function(lsoa_bustrips) {
@@ -59,7 +68,6 @@ classify_service_quality <- function(lsoa_bustrips) {
 
   #' remove intermediate values?
   lsoa_bustrips <- tidy_bustrips_data(lsoa_bustrips)
-
 
 }
 
@@ -120,31 +128,31 @@ tidy_bustrips_data <- function(lsoa_bustrips) {
            tph_Sun_Evening,
            tph_Sun_Night,
            tph_daytime_avg,
-           # tph_weekday_Morning_Peak_service,
+           tph_weekday_Morning_Peak_service,
            # tph_weekday_Morning_Peak_score,
-           # tph_weekday_Midday_service,
+           tph_weekday_Midday_service,
            # tph_weekday_Midday_score,
-           # tph_weekday_Afternoon_Peak_service,
+           tph_weekday_Afternoon_Peak_service,
            # tph_weekday_Afternoon_Peak_score,
-           # tph_weekday_Evening_service,
+           tph_weekday_Evening_service,
            # tph_weekday_Evening_score,
-           # tph_Sat_Morning_Peak_service,
+           tph_Sat_Morning_Peak_service,
            # tph_Sat_Morning_Peak_score,
-           # tph_Sat_Midday_service,
+           tph_Sat_Midday_service,
            # tph_Sat_Midday_score,
-           # tph_Sat_Afternoon_Peak_service,
+           tph_Sat_Afternoon_Peak_service,
            # tph_Sat_Afternoon_Peak_score,
-           # tph_Sat_Evening_service,
+           tph_Sat_Evening_service,
            # tph_Sat_Evening_score,
-           # tph_Sun_Morning_Peak_service,
+           tph_Sun_Morning_Peak_service,
            # tph_Sun_Morning_Peak_score,
-           # tph_Sun_Midday_service,
+           tph_Sun_Midday_service,
            # tph_Sun_Midday_score,
-           # tph_Sun_Afternoon_Peak_service,
+           tph_Sun_Afternoon_Peak_service,
            # tph_Sun_Afternoon_Peak_score,
-           # tph_Sun_Evening_service,
+           tph_Sun_Evening_service,
            # tph_Sun_Evening_score,
-           # tph_daytime_avg_service,
+           tph_daytime_avg_service,
            # tph_daytime_avg_score,
            weekday_service_score,
            saturday_service_score,

@@ -46,6 +46,12 @@ table(lsoa_bustrips$rurality,
 
 lsoa_bustrips_20070_10 <- load_lsoa_bustrips(onspd, year_list = c(2007, 2008, 2009, 2010))
 lsoa_bustrips_20070_10_long <- lsoa_bustrips_20070_10 %>%
+  select(-route_type,
+         -year,
+         -year,
+         -ru11ind,
+         -urban_rural_cat,
+         -max_number_routes) %>%
   gather(key = time_period,
          value = tph,
          -lsoa11,
@@ -53,6 +59,8 @@ lsoa_bustrips_20070_10_long <- lsoa_bustrips_20070_10 %>%
   mutate(time_period = gsub("tph_", "", time_period)) %>%
   mutate(time_period = gsub("_", " ", time_period)) %>%
   mutate(time_period = paste0(toupper(substring(time_period, 1, 1)), tolower(substring(time_period, 2))))
+
+table(lsoa_bustrips_20070_10_long$time_period)
 
 lsoa_bustrips_20070_10_long$time_period <- factor(lsoa_bustrips_20070_10_long$time_period,
                                                   levels = c("Weekday morning peak",
@@ -109,11 +117,27 @@ lsoa_bustrips_20070_10_stats <- lsoa_bustrips_20070_10_long %>%
             tph_95th_ptile = round(quantile(tph, probs = 0.95, na.rm = TRUE), 1)) %>%
   ungroup()
 
+lsoa_bustrips_20070_10_quintiles <- lsoa_bustrips_20070_10_long %>%
+  filter(!is.na(rurality)) %>%
+  group_by(rurality,
+           time_period) %>%
+  summarise(tph_20th_ptile = round(quantile(tph, probs = 0.2, na.rm = TRUE), 1),
+            tph_40th_ptile = round(quantile(tph, probs = 0.4, na.rm = TRUE), 1),
+            tph_60th_ptile = round(quantile(tph, probs = 0.6, na.rm = TRUE), 1),
+            tph_80th_ptile = round(quantile(tph, probs = 0.8, na.rm = TRUE), 1)) %>%
+  ungroup()
+
+
 dir.create("outputs")
 dir.create("outputs/november-24/")
 
 write.csv(lsoa_bustrips_20070_10_stats,
           "outputs/november-24/bustrips-rural-urban-tph-summary-stats.csv",
+          row.names = FALSE,
+          na = "")
+
+write.csv(lsoa_bustrips_20070_10_quintiles,
+          "outputs/november-24/bustrips-rural-urban-tph-quintile-stats.csv",
           row.names = FALSE,
           na = "")
 

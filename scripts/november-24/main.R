@@ -29,15 +29,35 @@
 
 # set up ------------------------------------------------------------------
 
-clear_all = FALSE
+clear_all = TRUE
 source("scripts/november-24/set-up.R")
+
+onspd <- load_onspd(keep_only_current = TRUE)
 
 # run functions -----------------------------------------------------------
 
 lsoa_bustrips_2023 <- load_lsoa_bustrips(onspd, year_list = 2023)
-lsoa_bustrips_2023 <- classify_service_quality(lsoa_bustrips_2023)
+
+lsoa_bustrips_2023_service <- classify_service_quality(lsoa_bustrips_2023)
+lsoa_bustrips_2023_service <- add_geography(lsoa_bustrips_2023_service)
+lsoa_bustrips_2023_service <- add_ethnicity_imd_carownership_lsoa(lsoa_bustrips_2023_service)
+
+lsoa_bustrips_2023_quintiles <- classify_service_quality_in_quintiles(lsoa_bustrips_2023)
+lsoa_bustrips_2023_quintiles <- add_geography(lsoa_bustrips_2023_quintiles)
+lsoa_bustrips_2023_quintiles <- add_ethnicity_imd_carownership_lsoa(lsoa_bustrips_2023_quintiles)
 
 # review results ----------------------------------------------------------
+
+service_by_region <- summarise_service_by_period_and_geog(lsoa_bustrips_2023_service, geog_name = region_name, group_var = rurality, service = tph_daytime_avg_service, measure = "service")
+quintiles_by_region <- summarise_service_by_period_and_geog(lsoa_bustrips_2023_quintiles, geog_name = region_name, group_var = rurality, service = tph_daytime_avg_quintile)
+quintile_service_by_region <- summarise_service_by_period_and_geog(lsoa_bustrips_2023_quintiles, geog_name = region_name, group_var = rurality, service = tph_daytime_avg_service, measure = "quintiles")
+
+ethnicity_summary <- make_ethnicity_summary(lsoa_bustrips_2023_quintiles, geog_name = region_name, service = tph_daytime_avg_service)
+car_ownership_summary <- make_carownership_summary(lsoa_bustrips_2023_quintiles, geog_name = region_name, service = tph_daytime_avg_service)
+imd_summary <- make_imd_summary(lsoa_bustrips_2023_quintiles, service = tph_daytime_avg_service)
+imd_rurality_summary <- make_imd_summary_by_region(lsoa_bustrips_2023_quintiles, service = tph_daytime_avg_service, measure = "quintiles")
+
+#   -----------------------------------------------------------------------
 
 summary(lsoa_bustrips_2023$max_number_routes)
 
@@ -46,12 +66,24 @@ table(substring(lsoa_bustrips_2023$lsoa11, 1, 1),
 table(substring(lsoa_bustrips_2023$lsoa11, 1, 1),
       is.na(lsoa_bustrips_2023$tph_weekday_Morning_Peak), useNA = "ifany")
 
-hist(lsoa_bustrips_2023$overall_service_score)
-hist(lsoa_bustrips_2023$weeklong_good_duration, breaks = 20)
-hist(lsoa_bustrips_2023$weeklong_duration, breaks = 20)
+hist(lsoa_bustrips_2023_service$overall_service_score)
+hist(lsoa_bustrips_2023_service$weeklong_good_duration, breaks = 20)
+hist(lsoa_bustrips_2023_service$weeklong_duration, breaks = 20)
 
-make_map_of_bus_service(lsoa_bustrips_2023)
-make_map_of_bus_service_score(lsoa_bustrips_2023)
+hist(lsoa_bustrips_2023_quintiles$overall_service_score)
+hist(lsoa_bustrips_2023_quintiles$weeklong_good_duration, breaks = 20)
+hist(lsoa_bustrips_2023_quintiles$weeklong_duration, breaks = 20)
+
+
+tmap_mode(mode = "view")
+make_map_of_bus_service(lsoa_bustrips_2023_quintiles)
+make_map_of_bus_service_sun_pm(lsoa_bustrips_2023_quintiles)
+make_map_of_bus_service_wkday_eve(lsoa_bustrips_2023_quintiles)
+
+make_map_of_bus_service_score(lsoa_bustrips_2023_quintiles)
+
+str(lsoa_bustrips_2023_quintiles)
+
 make_map_of_bus_good_service_duration(lsoa_bustrips_2023)
 make_map_of_bus_all_service_duration(lsoa_bustrips_2023)
 
