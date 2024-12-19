@@ -29,10 +29,10 @@
 
 # set up ------------------------------------------------------------------
 
-clear_all = TRUE
+clear_all = FALSE
 source("scripts/november-24/set-up.R")
 
-onspd <- load_onspd(keep_only_current = TRUE)
+onspd <- load_onspd(keep_only_current = FALSE)
 
 # run functions -----------------------------------------------------------
 
@@ -75,14 +75,95 @@ hist(lsoa_bustrips_2023_quintiles$weeklong_good_duration, breaks = 20)
 hist(lsoa_bustrips_2023_quintiles$weeklong_duration, breaks = 20)
 
 
-tmap_mode(mode = "view")
-make_map_of_bus_service(lsoa_bustrips_2023_quintiles)
-make_map_of_bus_service_sun_pm(lsoa_bustrips_2023_quintiles)
-make_map_of_bus_service_wkday_eve(lsoa_bustrips_2023_quintiles)
+tmap_mode(mode = "plot")
+# Weekday daytime average
+make_map_of_bus_service(lsoa_bustrips_2023_quintiles,
+                        tph = tph_daytime_avg,
+                        tph_service = tph_daytime_avg_service)
 
-make_map_of_bus_service_score(lsoa_bustrips_2023_quintiles)
+# weekday morning peak
+make_map_of_bus_service(lsoa_bustrips_2023_quintiles,
+                        tph = tph_weekday_Morning_Peak,
+                        tph_service = tph_weekday_Morning_Peak_service)
 
-str(lsoa_bustrips_2023_quintiles)
+# weekday midday
+make_map_of_bus_service(lsoa_bustrips_2023_quintiles,
+                        tph = tph_weekday_Midday,
+                        tph_service = tph_weekday_Midday_service)
+
+# weekday afternoon peak
+make_map_of_bus_service(lsoa_bustrips_2023_quintiles,
+                        tph = tph_weekday_Afternoon_Peak,
+                        tph_service = tph_weekday_Afternoon_Peak_service)
+
+# weekday evening
+make_map_of_bus_service(lsoa_bustrips_2023_quintiles,
+                        tph = tph_weekday_Evening,
+                        tph_service = tph_weekday_Evening_service)
+
+# saturday morning
+make_map_of_bus_service(lsoa_bustrips_2023_quintiles,
+                        tph = tph_Sat_Morning_Peak,
+                        tph_service = tph_Sat_Morning_Peak_service)
+
+# saturday midday
+make_map_of_bus_service(lsoa_bustrips_2023_quintiles,
+                        tph = tph_Sat_Midday,
+                        tph_service = tph_Sat_Midday_service)
+
+# saturday afternoon
+make_map_of_bus_service(lsoa_bustrips_2023_quintiles,
+                        tph = tph_Sat_Afternoon_Peak,
+                        tph_service = tph_Sat_Afternoon_Peak_service)
+
+# saturday evening
+make_map_of_bus_service(lsoa_bustrips_2023_quintiles,
+                        tph = tph_Sat_Evening,
+                        tph_service = tph_Sat_Evening_service)
+
+# sunday morning
+make_map_of_bus_service(lsoa_bustrips_2023_quintiles,
+                        tph = tph_Sun_Morning_Peak,
+                        tph_service = tph_Sun_Morning_Peak_service)
+
+# sunday midday
+make_map_of_bus_service(lsoa_bustrips_2023_quintiles,
+                        tph = tph_Sun_Midday,
+                        tph_service = tph_Sun_Midday_service)
+
+# sunday afternoon
+make_map_of_bus_service(lsoa_bustrips_2023_quintiles,
+                        tph = tph_Sun_Afternoon_Peak,
+                        tph_service = tph_Sun_Afternoon_Peak_service)
+
+# sunday Evening
+make_map_of_bus_service(lsoa_bustrips_2023_quintiles,
+                        tph = tph_Sun_Evening,
+                        tph_service = tph_Sun_Evening_service)
+
+#   -----------------------------------------------------------------------
+
+make_map_of_bus_service(lsoa_bustrips_2023_quintiles,
+                        tph = overall_service_score,
+                        tph_service = overall_service_score,
+                        type = "score")
+
+make_map_of_bus_service(lsoa_bustrips_2023_quintiles,
+                        tph = weekday_service_score,
+                        tph_service = weekday_service_score,
+                        type = "score")
+
+make_map_of_bus_service(lsoa_bustrips_2023_quintiles,
+                        tph = saturday_service_score,
+                        tph_service = saturday_service_score,
+                        type = "score")
+
+make_map_of_bus_service(lsoa_bustrips_2023_quintiles,
+                        tph = sunday_service_score,
+                        tph_service = sunday_service_score,
+                        type = "score")
+
+#   -----------------------------------------------------------------------
 
 make_map_of_bus_good_service_duration(lsoa_bustrips_2023)
 make_map_of_bus_all_service_duration(lsoa_bustrips_2023)

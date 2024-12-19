@@ -221,7 +221,7 @@ make_imd_summary_by_region <- function(lsoa_bustrips_2023, service, measure = "q
 
 # MAPS --------------------------------------------------------------------
 
-make_map_of_bus_service <- function(lsoa_bustrips, tph, tph_service) {
+make_map_of_bus_service <- function(lsoa_bustrips, tph, tph_service, type = "quintile") {
 
   tph_col <- gsub("tph_", "", deparse(substitute(tph)))
   tph_col <- gsub("_", " ", tph_col)
@@ -229,11 +229,16 @@ make_map_of_bus_service <- function(lsoa_bustrips, tph, tph_service) {
   tph_col <- gsub("\"", "", tph_col)
 
   tph_freq <- gsub("tph_", "", deparse(substitute(tph_service)))
-  tph_freq <- gsub("_service", "", deparse(substitute(tph_freq)))
+  tph_freq <- gsub("_service", "", tph_freq)
+  tph_freq <- gsub("_score", " frequency score", tph_freq)
   tph_freq <- gsub("_", " ", tph_freq)
-  tph_freq <- paste0(toupper(substring(tph_freq, 1, 1)), tolower(substring(tph_freq, 2)), " (service freq)")
+  if(type == "quintile") {
+    tph_freq <- paste0(toupper(substring(tph_freq, 1, 1)), tolower(substring(tph_freq, 2)), " (service freq)")
+  }
+  if(type == "score") {
+    tph_freq <- paste0(toupper(substring(tph_freq, 1, 1)), tolower(substring(tph_freq, 2)))
+  }
   tph_freq <- gsub("\"", "", tph_freq)
-
 
   lsoa_bustrips <- lsoa_bustrips %>%
     transmute(lsoa11,
@@ -252,14 +257,41 @@ make_map_of_bus_service <- function(lsoa_bustrips, tph, tph_service) {
 
   lsoa_bustrips <- left_join(lsoas, lsoa_bustrips, by = "lsoa11")
 
+  if(type == "quintile") {
+    foe_scale <- tm_scale_categorical(values = "-rd_yl_gn")
+  }
+  if(type == "score") {
+    foe_scale <- tm_scale_continuous(values = "rd_yl_gn")
+  }
+
   t <- tm_shape(lsoa_bustrips) +
     tm_polygons(fill = tph_freq,
-                fill.scale = tm_scale_categorical(values = "-rd_yl_gn"),
+                fill.scale = foe_scale,
                 col_alpha = 0,
                 popup.vars = c("lsoa11",
                                "rurality",
                                tph_col,
-                               tph_freq))
+                               tph_freq),
+                fill.legend = tm_legend(position = tm_pos_in())) +
+    tm_layout(
+      #title = "Bus service frequency by rural/urban class (Deciles)",
+      #title.position = c("center", "top"),
+      #title.size = 1,
+      #title.color = "#1e234d",
+      #bg.color = "#f4f6fd",
+      #inner.margins = c(0.1, 0.1, 0.1, 0.1),
+      frame = FALSE,
+      #frame.lwd = 1,
+      #legend.position = "left",
+      legend.frame = FALSE,
+      #legend.bg.color = "#f4f6fd",
+      legend.title.fontface = "bold",
+      legend.title.color = "#1e234d",
+      legend.title.size = 0.8,
+      legend.text.fontface = "bold",
+      legend.text.color = "#1e234d",
+      legend.text.size = 0.7
+    )
 
 
   file_name <- gsub("[(]|[)]", "", tph_freq)
@@ -269,160 +301,14 @@ make_map_of_bus_service <- function(lsoa_bustrips, tph, tph_service) {
   tmap_save(t,
             full_file_name)
 
-  t
-
-}
-
-make_map_of_bus_service_am_peak <- function(lsoa_bustrips) {
-
-
-
-  lsoa_bustrips_daytime <- lsoa_bustrips %>%
-    transmute(lsoa11,
-              rurality,
-              `Weekday morning peak (tph)` = round(tph_weekday_Morning_Peak, 1),
-              `Weekday morning peak (service freq)` = tph_weekday_Morning_Peak_service
-    )
-
-  lsoas <- st_read("../gis-data/boundaries/lsoa/LSOA_2011_EW_BSC_V4/LSOA_2011_EW_BSC_V4.shp",
-                   quiet = TRUE)
-  lsoas <- lsoas %>%
-    select(lsoa11 = LSOA11CD,
-           geometry)
-
-  lsoa_bustrips_daytime <- left_join(lsoas, lsoa_bustrips_daytime, by = "lsoa11")
-  #lsoa_bustrips_daytime <- lsoa_bustrips_daytime %>%
-  #  mutate(tph_weekday_Morning_Peak_service = ifelse(is.na(tph_weekday_Morning_Peak_service), "No buses", tph_weekday_Morning_Peak_service))
-
-  #tmap_mode("view")
-
-  t <- tm_shape(lsoa_bustrips_daytime) +
-    tm_polygons(fill = "Weekday morning peak (service freq)",
-                fill.scale = tm_scale_categorical(values = "-rd_yl_gn"),
-                col_alpha = 0,
-                popup.vars = c("lsoa11",
-                               "rurality",
-                               "Weekday morning peak (tph)",
-                               "Weekday morning peak (service freq)"))
-
-  tmap_save(t,
-            "outputs/november-24/plots/weekday-morning-service-rag.png")
-
-  t
+  return(t)
 
 }
 
 
-make_map_of_bus_service_wkday_eve <- function(lsoa_bustrips) {
-
-  lsoa_bustrips_sun <- lsoa_bustrips %>%
-    transmute(lsoa11,
-              rurality,
-              `Weekday evening (tph)` = round(tph_weekday_Evening, 1),
-              `Weekday evening (service freq)` = tph_weekday_Evening_service
-    )
-
-  lsoas <- st_read("../gis-data/boundaries/lsoa/LSOA_2011_EW_BSC_V4/LSOA_2011_EW_BSC_V4.shp",
-                   quiet = TRUE)
-  lsoas <- lsoas %>%
-    select(lsoa11 = LSOA11CD,
-           geometry)
-
-  lsoa_bustrips_sun <- left_join(lsoas, lsoa_bustrips_sun, by = "lsoa11")
-
-  t <- tm_shape(lsoa_bustrips_sun) +
-    tm_polygons(fill = "Weekday evening (service freq)",
-                fill.scale = tm_scale_categorical(values = "-rd_yl_gn"),
-                col_alpha = 0,
-                popup.vars = c("lsoa11",
-                               "rurality",
-                               "Weekday evening (tph)",
-                               "Weekday evening (service freq)"))
-
-  tmap_save(t,
-            "outputs/november-24/plots/weekday-evening-service.png")
-
-  t
-
-}
+#  OLD FUNCTIONS ----------------------------------------------------------
 
 
-make_map_of_bus_service_sun_pm <- function(lsoa_bustrips) {
-
-  lsoa_bustrips_sun <- lsoa_bustrips %>%
-    transmute(lsoa11,
-              rurality,
-              `Sunday afternoon peak (tph)` = round(tph_Sun_Afternoon_Peak, 1),
-              `Sunday afternoon peak (service freq)` = tph_Sun_Afternoon_Peak_service
-    )
-
-  lsoas <- st_read("../gis-data/boundaries/lsoa/LSOA_2011_EW_BSC_V4/LSOA_2011_EW_BSC_V4.shp",
-                   quiet = TRUE)
-  lsoas <- lsoas %>%
-    select(lsoa11 = LSOA11CD,
-           geometry)
-
-  lsoa_bustrips_sun <- left_join(lsoas, lsoa_bustrips_sun, by = "lsoa11")
-
-  t <- tm_shape(lsoa_bustrips_sun) +
-    tm_polygons(fill = "Sunday afternoon peak (service freq)",
-                fill.scale = tm_scale_categorical(values = "-rd_yl_gn"),
-                col_alpha = 0,
-                popup.vars = c("lsoa11",
-                               "rurality",
-                               "Sunday afternoon peak (tph)",
-                               "Sunday afternoon peak (service freq)"))
-
-  tmap_save(t,
-            "outputs/november-24/plots/sunday-afternoon-service-rag.png")
-
-  t
-
-}
-
-
-
-
-
-make_map_of_bus_service_score <- function(lsoa_bustrips) {
-
-  lsoa_bustrips_score <- lsoa_bustrips %>%
-    select(lsoa11,
-           rurality,
-           `Weekday service score` = weekday_service_score,
-           `Saturday service score` = saturday_service_score,
-           `Sunday service score` = sunday_service_score,
-           `Overall service score` = overall_service_score)
-
-  lsoas <- st_read("../gis-data/boundaries/lsoa/LSOA_2011_EW_BSC_V4/LSOA_2011_EW_BSC_V4.shp",
-                   quiet = TRUE)
-  lsoas <- lsoas %>%
-    select(lsoa11 = LSOA11CD,
-           geometry)
-
-  lsoa_bustrips_score <- left_join(lsoas, lsoa_bustrips_score, by = "lsoa11")
-  #lsoa_bustrips_score <- lsoa_bustrips_score %>%
-  #  mutate(tph_weekday_Morning_Peak_service = ifelse(is.na(tph_weekday_Morning_Peak_service), "No buses", tph_weekday_Morning_Peak_service))
-
-  #tmap_mode("view")
-
-  t <- tm_shape(lsoa_bustrips_score) +
-    tm_polygons(fill = "Overall service score",
-                fill.scale = tm_scale_continuous(values = "rd_yl_gn"),
-                col_alpha = 0,
-                popup.vars = c("lsoa11",
-                               "rurality",
-                               "Weekday service score",
-                               "Saturday service score",
-                               "Sunday service score",
-                               "Overall service score"))
-
-  tmap_save(t,
-            "outputs/november-24/plots/overall-bus-service-score.png")
-
-  t
-
-}
 
 make_map_of_bus_good_service_duration <- function(lsoa_bustrips) {
 

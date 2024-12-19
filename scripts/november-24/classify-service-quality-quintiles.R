@@ -23,28 +23,28 @@ service_quality_quintiles <- function(lsoa_bustrips, tph, tph_quintile) {
 
   lsoa_bustrips <- lsoa_bustrips %>%
     mutate("{{ tph }}_quintile" := case_when(rurality == "Urban: Conurbation" & round({{ tph }}) >= urban_1 ~ 5,
-                                            rurality == "Urban: Conurbation" & round({{ tph }}) >= urban_2 ~ 4,
-                                            rurality == "Urban: Conurbation" & round({{ tph }}) >= urban_3 ~ 3,
-                                            rurality == "Urban: Conurbation" & round({{ tph }}) >= urban_4 ~ 2,
-                                            rurality == "Urban: Conurbation" & round({{ tph }}) < urban_4 ~ 1,
+                                             rurality == "Urban: Conurbation" & round({{ tph }}) >= urban_2 ~ 4,
+                                             rurality == "Urban: Conurbation" & round({{ tph }}) >= urban_3 ~ 3,
+                                             rurality == "Urban: Conurbation" & round({{ tph }}) >= urban_4 ~ 2,
+                                             rurality == "Urban: Conurbation" & round({{ tph }}) < urban_4 ~ 1,
 
-                                            rurality == "Urban: City and Town" & round({{ tph }}) >= city_1 ~ 5,
-                                            rurality == "Urban: City and Town" & round({{ tph }}) >= city_2 ~ 4,
-                                            rurality == "Urban: City and Town" & round({{ tph }}) >= city_3 ~ 3,
-                                            rurality == "Urban: City and Town" & round({{ tph }}) >= city_4 ~ 2,
-                                            rurality == "Urban: City and Town" & round({{ tph }}) < city_4 ~ 1,
+                                             rurality == "Urban: City and Town" & round({{ tph }}) >= city_1 ~ 5,
+                                             rurality == "Urban: City and Town" & round({{ tph }}) >= city_2 ~ 4,
+                                             rurality == "Urban: City and Town" & round({{ tph }}) >= city_3 ~ 3,
+                                             rurality == "Urban: City and Town" & round({{ tph }}) >= city_4 ~ 2,
+                                             rurality == "Urban: City and Town" & round({{ tph }}) < city_4 ~ 1,
 
-                                            rurality == "Rural: Town and Fringe" & round({{ tph }}) >= town_1 ~ 5,
-                                            rurality == "Rural: Town and Fringe" & round({{ tph }}) >= town_2 ~ 4,
-                                            rurality == "Rural: Town and Fringe" & round({{ tph }}) >= town_3 ~ 3,
-                                            rurality == "Rural: Town and Fringe" & round({{ tph }}) >= town_4 ~ 2,
-                                            rurality == "Rural: Town and Fringe" & round({{ tph }}) < town_4 ~ 1,
+                                             rurality == "Rural: Town and Fringe" & round({{ tph }}) >= town_1 ~ 5,
+                                             rurality == "Rural: Town and Fringe" & round({{ tph }}) >= town_2 ~ 4,
+                                             rurality == "Rural: Town and Fringe" & round({{ tph }}) >= town_3 ~ 3,
+                                             rurality == "Rural: Town and Fringe" & round({{ tph }}) >= town_4 ~ 2,
+                                             rurality == "Rural: Town and Fringe" & round({{ tph }}) < town_4 ~ 1,
 
-                                            rurality == "Rural: Village/Hamlets/Isolated Dwellings" & round({{ tph }}) >= village_1 ~ 5,
-                                            rurality == "Rural: Village/Hamlets/Isolated Dwellings" & round({{ tph }}) >= village_2 ~ 4,
-                                            rurality == "Rural: Village/Hamlets/Isolated Dwellings" & round({{ tph }}) >= village_3 ~ 3,
-                                            rurality == "Rural: Village/Hamlets/Isolated Dwellings" & round({{ tph }}) >= village_4 ~ 2,
-                                            rurality == "Rural: Village/Hamlets/Isolated Dwellings" & round({{ tph }}) < village_4 ~ 1)) %>%
+                                             rurality == "Rural: Village/Hamlets/Isolated Dwellings" & round({{ tph }}) >= village_1 ~ 5,
+                                             rurality == "Rural: Village/Hamlets/Isolated Dwellings" & round({{ tph }}) >= village_2 ~ 4,
+                                             rurality == "Rural: Village/Hamlets/Isolated Dwellings" & round({{ tph }}) >= village_3 ~ 3,
+                                             rurality == "Rural: Village/Hamlets/Isolated Dwellings" & round({{ tph }}) >= village_4 ~ 2,
+                                             rurality == "Rural: Village/Hamlets/Isolated Dwellings" & round({{ tph }}) < village_4 ~ 1)) %>%
 
     mutate("{{ tph }}_service" := case_when({{ tph_quintile }} == 5 ~ "Very good",
                                             {{ tph_quintile }} == 4 ~ "Good",
