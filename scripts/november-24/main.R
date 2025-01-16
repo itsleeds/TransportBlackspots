@@ -27,9 +27,24 @@
 #'  - Produce a national, regional, constituency and local authority analysis
 #'    summarising the number of LSOAs in each rating for each time interval
 
+
+#' edit:
+#'
+#' Reduce slots into 4 time periods
+#'  - Weekday day 6am-6pm
+#'  - Weekday eve 6pm-10pm
+#'  - Weekend day 6am-6pm
+#'  - Weekend eve 6pm-10pm
+#'  [CHECK THIS MAKES SENSE FOR SUNDAY, if not split Sunday and Saturday]
+#'
+#' Calculate current quintiles
+#' Compare with 2007-10 quintiles
+#' Just use 1-5 with 1 being the best service. Could convert to letters? A-E?
+
+
 # set up ------------------------------------------------------------------
 
-clear_all = FALSE
+clear_all = TRUE
 source("scripts/november-24/set-up.R")
 
 onspd <- load_onspd(keep_only_current = FALSE)
@@ -45,6 +60,66 @@ lsoa_bustrips_2023_service <- add_ethnicity_imd_carownership_lsoa(lsoa_bustrips_
 lsoa_bustrips_2023_quintiles <- classify_service_quality_in_quintiles(lsoa_bustrips_2023)
 lsoa_bustrips_2023_quintiles <- add_geography(lsoa_bustrips_2023_quintiles)
 lsoa_bustrips_2023_quintiles <- add_ethnicity_imd_carownership_lsoa(lsoa_bustrips_2023_quintiles)
+
+
+
+# check results -----------------------------------------------------------
+
+hist(lsoa_bustrips_2023_quintiles$weeklong_vgood_duration_pct)
+hist(lsoa_bustrips_2023_quintiles$weeklong_okay_duration_pct)
+hist(lsoa_bustrips_2023_quintiles$weeklong_poor_duration_pct)
+
+# percentage of the time at which services are at least 'poor' or higher
+make_map_of_bus_service(lsoa_bustrips = lsoa_bustrips_2023_quintiles,
+                        tph = tph_daytime_avg,
+                        tph_service = weeklong_poor_duration_pct,
+                        type = "score",
+                        pct = TRUE)
+
+# percentage of the time at which services are at least 'okay' or higher
+make_map_of_bus_service(lsoa_bustrips = lsoa_bustrips_2023_quintiles,
+                        tph = tph_daytime_avg,
+                        tph_service = weeklong_okay_duration_pct,
+                        type = "score",
+                        pct = TRUE)
+
+# percentage of the time at which services are 'very good'
+make_map_of_bus_service(lsoa_bustrips = lsoa_bustrips_2023_quintiles,
+                        tph = tph_daytime_avg,
+                        tph_service = weeklong_vgood_duration_pct,
+                        type = "score",
+                        pct = TRUE)
+
+# percentage of the time at which services are 'good'
+make_map_of_bus_service(lsoa_bustrips = lsoa_bustrips_2023_quintiles,
+                        tph = tph_daytime_avg,
+                        tph_service = weeklong_good_duration_pct,
+                        type = "score",
+                        pct = TRUE)
+
+# count of times at which services are 'good'
+make_map_of_bus_service(lsoa_bustrips = lsoa_bustrips_2023_quintiles,
+                        tph = tph_daytime_avg,
+                        tph_service = weeklong_good_duration,
+                        type = "score")
+
+
+# duration of services
+# how many hours of the week do LSOA have a service
+make_map_of_bus_service(lsoa_bustrips = lsoa_bustrips_2023_quintiles,
+                        tph = weeklong_duration,
+                        tph_service = weeklong_duration,
+                        type = "score")
+
+# what proportion of the week (i.e. hours / 48) do LSOAs have a service
+make_map_of_bus_service(lsoa_bustrips = lsoa_bustrips_2023_quintiles,
+                        tph = weeklong_duration,
+                        tph_service = weeklong_duration_pct,
+                        type = "score",
+                        pct = TRUE)
+
+
+
 
 # review results ----------------------------------------------------------
 

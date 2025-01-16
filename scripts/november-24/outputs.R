@@ -221,7 +221,7 @@ make_imd_summary_by_region <- function(lsoa_bustrips_2023, service, measure = "q
 
 # MAPS --------------------------------------------------------------------
 
-make_map_of_bus_service <- function(lsoa_bustrips, tph, tph_service, type = "quintile") {
+make_map_of_bus_service <- function(lsoa_bustrips, tph, tph_service, type = "quintile", pct = FALSE) {
 
   tph_col <- gsub("tph_", "", deparse(substitute(tph)))
   tph_col <- gsub("_", " ", tph_col)
@@ -232,6 +232,7 @@ make_map_of_bus_service <- function(lsoa_bustrips, tph, tph_service, type = "qui
   tph_freq <- gsub("_service", "", tph_freq)
   tph_freq <- gsub("_score", " frequency score", tph_freq)
   tph_freq <- gsub("_", " ", tph_freq)
+  tph_freq <- gsub(" pct", " (%)", tph_freq)
   if(type == "quintile") {
     tph_freq <- paste0(toupper(substring(tph_freq, 1, 1)), tolower(substring(tph_freq, 2)), " (service freq)")
   }
@@ -245,6 +246,11 @@ make_map_of_bus_service <- function(lsoa_bustrips, tph, tph_service, type = "qui
               rurality,
               tph = round({{ tph }}, 1),
               tph_service = {{ tph_service }})
+
+  if(pct) {
+    lsoa_bustrips <- lsoa_bustrips %>%
+      mutate(tph_service = tph_service * 100)
+  }
 
   colnames(lsoa_bustrips)[3] <- tph_col
   colnames(lsoa_bustrips)[4] <- tph_freq
@@ -296,7 +302,10 @@ make_map_of_bus_service <- function(lsoa_bustrips, tph, tph_service, type = "qui
 
   file_name <- gsub("[(]|[)]", "", tph_freq)
   file_name <- gsub("[ ]+", "-", file_name)
+  file_name <- gsub("[(]|[)]", "", file_name)
+  file_name <- gsub("[%]", "pct", file_name)
   full_file_name <- paste0("outputs/november-24/plots/", file_name,".png")
+  message(full_file_name)
 
   tmap_save(t,
             full_file_name)

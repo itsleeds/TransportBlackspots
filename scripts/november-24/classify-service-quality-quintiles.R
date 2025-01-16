@@ -102,10 +102,10 @@ classify_service_quality_in_quintiles <- function(lsoa_bustrips) {
   summary(lsoa_bustrips$overall_service_score)
 
   # calculate good service duration?
-  lsoa_bustrips <- calculate_verygood_service_duration(lsoa_bustrips, weekday_multiplier = 5)
+  lsoa_bustrips <- calculate_freq_service_duration(lsoa_bustrips, weekday_multiplier = 1)
 
   # calculate all service duration
-  lsoa_bustrips <- calculate_all_service_duration(lsoa_bustrips, weekday_multiplier = 5)
+  lsoa_bustrips <- calculate_all_service_duration(lsoa_bustrips, weekday_multiplier = 1)
 
   #' remove intermediate values?
   lsoa_bustrips <- tidy_bustrips_data_quintiles(lsoa_bustrips)
@@ -132,15 +132,46 @@ classify_service_quality_in_quintiles <- function(lsoa_bustrips) {
 # this calculates the duration of good services across the day/evening/week. Maximum duration of good weekly service is 48 hours*
 # Or should that be weekday*5 + sat + sun = 16*5 + 16 + 16 = 112?
 
-calculate_verygood_service_duration <- function(lsoa_bustrips, weekday_multiplier = 1) {
+calculate_freq_service_duration <- function(lsoa_bustrips, weekday_multiplier = 1) {
 
-  if_one_else_none <- function(x, hours) ifelse(x == 2, 1, 0) * hours
+  if_vgood_else_none <- function(x, hours) ifelse(x == 2, 1, 0) * hours
 
   lsoa_bustrips <- lsoa_bustrips %>%
-    mutate(weekday_good_duration = if_one_else_none(tph_weekday_Morning_Peak_score, 4) + if_one_else_none(tph_weekday_Midday_score, 5) + if_one_else_none(tph_weekday_Afternoon_Peak_score, 3) + if_one_else_none(tph_weekday_Evening_score, 4),
-           saturday_good_duration = if_one_else_none(tph_Sat_Morning_Peak_score, 4) + if_one_else_none(tph_Sat_Midday_score, 5) + if_one_else_none(tph_Sat_Afternoon_Peak_score, 3) + if_one_else_none(tph_Sat_Evening_score, 4),
-           sunday_good_duration = if_one_else_none(tph_Sun_Morning_Peak_score, 4) + if_one_else_none(tph_Sun_Midday_score, 5) + if_one_else_none(tph_Sun_Afternoon_Peak_score, 3) + if_one_else_none(tph_Sun_Evening_score, 4)) %>%
-    mutate(weeklong_good_duration = (weekday_good_duration * weekday_multiplier) + saturday_good_duration + sunday_good_duration)
+    mutate(weekday_vgood_duration = if_vgood_else_none(tph_weekday_Morning_Peak_score, 4) + if_vgood_else_none(tph_weekday_Midday_score, 5) + if_vgood_else_none(tph_weekday_Afternoon_Peak_score, 3) + if_vgood_else_none(tph_weekday_Evening_score, 4),
+           saturday_vgood_duration = if_vgood_else_none(tph_Sat_Morning_Peak_score, 4) + if_vgood_else_none(tph_Sat_Midday_score, 5) + if_vgood_else_none(tph_Sat_Afternoon_Peak_score, 3) + if_vgood_else_none(tph_Sat_Evening_score, 4),
+           sunday_vgood_duration = if_vgood_else_none(tph_Sun_Morning_Peak_score, 4) + if_vgood_else_none(tph_Sun_Midday_score, 5) + if_vgood_else_none(tph_Sun_Afternoon_Peak_score, 3) + if_vgood_else_none(tph_Sun_Evening_score, 4)) %>%
+    mutate(weeklong_vgood_duration = (weekday_vgood_duration * weekday_multiplier) + saturday_vgood_duration + sunday_vgood_duration) %>%
+    mutate(weeklong_vgood_duration_pct = weeklong_vgood_duration / ((16 * weekday_multiplier) + 32))
+
+
+  if_atleast_okay_else_none <- function(x, hours) ifelse(x >= 1, 1, 0) * hours
+
+  if_good_else_none <- function(x, hours) ifelse(x >= 1.5, 1, 0) * hours
+
+  lsoa_bustrips <- lsoa_bustrips %>%
+    mutate(weekday_good_duration = if_good_else_none(tph_weekday_Morning_Peak_score, 4) + if_good_else_none(tph_weekday_Midday_score, 5) + if_good_else_none(tph_weekday_Afternoon_Peak_score, 3) + if_good_else_none(tph_weekday_Evening_score, 4),
+           saturday_good_duration = if_good_else_none(tph_Sat_Morning_Peak_score, 4) + if_good_else_none(tph_Sat_Midday_score, 5) + if_good_else_none(tph_Sat_Afternoon_Peak_score, 3) + if_good_else_none(tph_Sat_Evening_score, 4),
+           sunday_good_duration = if_good_else_none(tph_Sun_Morning_Peak_score, 4) + if_good_else_none(tph_Sun_Midday_score, 5) + if_good_else_none(tph_Sun_Afternoon_Peak_score, 3) + if_good_else_none(tph_Sun_Evening_score, 4)) %>%
+    mutate(weeklong_good_duration = (weekday_good_duration * weekday_multiplier) + saturday_good_duration + sunday_good_duration) %>%
+    mutate(weeklong_good_duration_pct = weeklong_good_duration / ((16 * weekday_multiplier) + 32))
+
+  if_atleast_okay_else_none <- function(x, hours) ifelse(x >= 1, 1, 0) * hours
+
+  lsoa_bustrips <- lsoa_bustrips %>%
+    mutate(weekday_okay_duration = if_atleast_okay_else_none(tph_weekday_Morning_Peak_score, 4) + if_atleast_okay_else_none(tph_weekday_Midday_score, 5) + if_atleast_okay_else_none(tph_weekday_Afternoon_Peak_score, 3) + if_atleast_okay_else_none(tph_weekday_Evening_score, 4),
+           saturday_okay_duration = if_atleast_okay_else_none(tph_Sat_Morning_Peak_score, 4) + if_atleast_okay_else_none(tph_Sat_Midday_score, 5) + if_atleast_okay_else_none(tph_Sat_Afternoon_Peak_score, 3) + if_atleast_okay_else_none(tph_Sat_Evening_score, 4),
+           sunday_okay_duration = if_atleast_okay_else_none(tph_Sun_Morning_Peak_score, 4) + if_atleast_okay_else_none(tph_Sun_Midday_score, 5) + if_atleast_okay_else_none(tph_Sun_Afternoon_Peak_score, 3) + if_atleast_okay_else_none(tph_Sun_Evening_score, 4)) %>%
+    mutate(weeklong_okay_duration = (weekday_okay_duration * weekday_multiplier) + saturday_okay_duration + sunday_okay_duration) %>%
+    mutate(weeklong_okay_duration_pct = weeklong_okay_duration / ((16 * weekday_multiplier) + 32))
+
+  if_atleast_poor_else_none <- function(x, hours) ifelse(x >= 0.5, 1, 0) * hours
+
+  lsoa_bustrips <- lsoa_bustrips %>%
+    mutate(weekday_poor_duration = if_atleast_poor_else_none(tph_weekday_Morning_Peak_score, 4) + if_atleast_poor_else_none(tph_weekday_Midday_score, 5) + if_atleast_poor_else_none(tph_weekday_Afternoon_Peak_score, 3) + if_atleast_poor_else_none(tph_weekday_Evening_score, 4),
+           saturday_poor_duration = if_atleast_poor_else_none(tph_Sat_Morning_Peak_score, 4) + if_atleast_poor_else_none(tph_Sat_Midday_score, 5) + if_atleast_poor_else_none(tph_Sat_Afternoon_Peak_score, 3) + if_atleast_poor_else_none(tph_Sat_Evening_score, 4),
+           sunday_poor_duration = if_atleast_poor_else_none(tph_Sun_Morning_Peak_score, 4) + if_atleast_poor_else_none(tph_Sun_Midday_score, 5) + if_atleast_poor_else_none(tph_Sun_Afternoon_Peak_score, 3) + if_atleast_poor_else_none(tph_Sun_Evening_score, 4)) %>%
+    mutate(weeklong_poor_duration = (weekday_poor_duration * weekday_multiplier) + saturday_poor_duration + sunday_poor_duration) %>%
+    mutate(weeklong_poor_duration_pct = weeklong_poor_duration / ((16 * weekday_multiplier) + 32))
 
 
 }
@@ -155,7 +186,8 @@ calculate_all_service_duration <- function(lsoa_bustrips, weekday_multiplier = 1
     mutate(weekday_duration = if_some_else_none(tph_weekday_Morning_Peak, 4) + if_some_else_none(tph_weekday_Midday, 5) + if_some_else_none(tph_weekday_Afternoon_Peak, 3) + if_some_else_none(tph_weekday_Evening, 4),
            saturday_duration = if_some_else_none(tph_Sat_Morning_Peak, 4) + if_some_else_none(tph_Sat_Midday, 5) + if_some_else_none(tph_Sat_Afternoon_Peak, 3) + if_some_else_none(tph_Sat_Evening, 4),
            sunday_duration = if_some_else_none(tph_Sun_Morning_Peak, 4) + if_some_else_none(tph_Sun_Midday, 5) + if_some_else_none(tph_Sun_Afternoon_Peak, 3) + if_some_else_none(tph_Sun_Evening, 4)) %>%
-    mutate(weeklong_duration = (weekday_duration * weekday_multiplier) + saturday_duration + sunday_duration)
+    mutate(weeklong_duration = (weekday_duration * weekday_multiplier) + saturday_duration + sunday_duration) %>%
+    mutate(weeklong_duration_pct = weeklong_duration / ((16 * weekday_multiplier) + 32))
 
 }
 
@@ -239,13 +271,15 @@ tidy_bustrips_data_quintiles <- function(lsoa_bustrips) {
            saturday_service_score,
            sunday_service_score,
            overall_service_score,
-           weekday_good_duration,
-           saturday_good_duration,
-           sunday_good_duration,
+           weeklong_vgood_duration,
+           weeklong_vgood_duration_pct,
            weeklong_good_duration,
-           weekday_duration,
-           saturday_duration,
-           sunday_duration,
-           weeklong_duration)
+           weeklong_good_duration_pct,
+           weeklong_okay_duration,
+           weeklong_okay_duration_pct,
+           weeklong_poor_duration,
+           weeklong_poor_duration_pct,
+           weeklong_duration,
+           weeklong_duration_pct)
 
 }

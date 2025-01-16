@@ -30,7 +30,9 @@ load_onspd <- function(keep_only_current = TRUE) {
            pcon,
            oslaua,
            oscty,
-           rgn)
+           rgn,
+           lat,
+           long)
 
   # end timer
   toc()
