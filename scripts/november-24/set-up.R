@@ -18,6 +18,7 @@ load_packages <- function() {
   library(tictoc)
   #library(pracma)
   library(openxlsx)
+  library(scales)
   #library(fpp2)
   #library(zoo)
   #library(tsoutliers)

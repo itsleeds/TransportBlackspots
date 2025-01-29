@@ -236,6 +236,9 @@ make_map_of_bus_service <- function(lsoa_bustrips, tph, tph_service, type = "qui
   if(type == "quintile") {
     tph_freq <- paste0(toupper(substring(tph_freq, 1, 1)), tolower(substring(tph_freq, 2)), " (service freq)")
   }
+  if(type == "decile") {
+    tph_freq <- paste0(toupper(substring(tph_freq, 1, 1)), tolower(substring(tph_freq, 2)), "\n(1 = most buses)")
+  }
   if(type == "score") {
     tph_freq <- paste0(toupper(substring(tph_freq, 1, 1)), tolower(substring(tph_freq, 2)))
   }
@@ -263,7 +266,7 @@ make_map_of_bus_service <- function(lsoa_bustrips, tph, tph_service, type = "qui
 
   lsoa_bustrips <- left_join(lsoas, lsoa_bustrips, by = "lsoa11")
 
-  if(type == "quintile") {
+  if(type %in% c("quintile", "decile")) {
     foe_scale <- tm_scale_categorical(values = "-rd_yl_gn")
   }
   if(type == "score") {
@@ -304,6 +307,8 @@ make_map_of_bus_service <- function(lsoa_bustrips, tph, tph_service, type = "qui
   file_name <- gsub("[ ]+", "-", file_name)
   file_name <- gsub("[(]|[)]", "", file_name)
   file_name <- gsub("[%]", "pct", file_name)
+  file_name <- gsub("\n", "", file_name)
+  file_name <- gsub("1-=-most-buses", "", file_name)
   full_file_name <- paste0("outputs/november-24/plots/", file_name,".png")
   message(full_file_name)
 
