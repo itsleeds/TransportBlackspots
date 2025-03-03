@@ -507,28 +507,27 @@ run_analysis_bustrips_2024_lsoa21 <- function() {
 
 }
 
-lsoa21_bustrips_200710 <- make_simplified_bustrips_lsoa21_200710()
-lsoa21_bustrips_2024 <- make_simplified_bustrips_lsoa21_2024()
+run_lsoa21_bus_anlaysis_for_fairness_report <- function() {
 
-lsoa21_bustrips_2024_quintiles <- calculate_bus_service_quintiles_lsoa21(lsoa21_bustrips_2024)
-lsoa21_bustrips_200710_quintiles <- calculate_bus_service_quintiles_lsoa21(lsoa21_bustrips_200710)
+  lsoa21_bustrips_200710 <- make_simplified_bustrips_lsoa21_200710()
+  lsoa21_bustrips_2024 <- make_simplified_bustrips_lsoa21_2024()
 
-lsoa21_bustrips_2024_long <- make_lsoa_bustrips_long_lsoa21(lsoa21_bustrips_2024)
-lsoa21_bustrips_2024_quintiles_daytime <- add_200710_quintiles_to_2024_data(lsoa_bustrips_2024 = lsoa21_bustrips_2024, lsoa_bustrips_200710_long = lsoa21_bustrips_200710_quintiles, time_period_name = "weekday_daytime")
+  lsoa21_bustrips_2024_quintiles <- calculate_bus_service_quintiles_lsoa21(lsoa21_bustrips_2024)
+  lsoa21_bustrips_200710_quintiles <- calculate_bus_service_quintiles_lsoa21(lsoa21_bustrips_200710)
 
-# TODO: Save these outputs
-quintile_summary_2024_daytime <- summarise_best_worst_quintiles_lsoa21(lsoa_bus = lsoa21_bustrips_2024_daytime, time_period_name = "weekday_daytime")
-quintile_summary_200710_daytime <- summarise_best_worst_quintiles_lsoa21(lsoa_bus = lsoa21_bustrips_200710_quintiles, time_period_name = "weekday_daytime")
+  lsoa21_bustrips_2024_long <- make_lsoa_bustrips_long_lsoa21(lsoa21_bustrips_2024)
+  lsoa21_bustrips_2024_quintiles_daytime <- add_200710_quintiles_to_2024_data(lsoa_bustrips_2024 = lsoa21_bustrips_2024, lsoa_bustrips_200710_long = lsoa21_bustrips_200710_quintiles, time_period_name = "weekday_daytime")
 
-# TODO: Rework this so that outputs are saved in a different function. Maybe with the above outputs together?
-make_and_save_200710_2023_quintile_comparisons_lsoa21(lsoa21_bustrips_2024_quintiles_daytime,
-                                                      lsoa21_bustrips_200710_quintiles,
-                                                      "bus-services-2010-2024-quintile-comparison.xlsx")
+  # TODO: Save these outputs
+  quintile_summary_2024_daytime <- summarise_best_worst_quintiles_lsoa21(lsoa_bus = lsoa21_bustrips_2024_daytime, time_period_name = "weekday_daytime")
+  quintile_summary_200710_daytime <- summarise_best_worst_quintiles_lsoa21(lsoa_bus = lsoa21_bustrips_200710_quintiles, time_period_name = "weekday_daytime")
 
+  # TODO: Rework this so that outputs are saved in a different function. Maybe with the above outputs together?
+  make_and_save_200710_2023_quintile_comparisons_lsoa21(lsoa21_bustrips_2024_quintiles_daytime,
+                                                        lsoa21_bustrips_200710_quintiles,
+                                                        "bus-services-2010-2024-quintile-comparison.xlsx")
 
-
-
-
+}
 
 #  end of section ---------------------------------------------------------
 
