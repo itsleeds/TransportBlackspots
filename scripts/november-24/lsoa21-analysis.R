@@ -292,7 +292,7 @@ summarise_best_worst_quintiles_lsoa21 <- function(lsoa_bus, time_period_name = "
               tph_mean = round(mean(tph, na.rm = TRUE), 1),
               tph_max = round(max(tph, na.rm = TRUE), 1),
               car_ownership_no_cars = round(sum(car_ownership_no_cars), -2),
-              car_ownership_no_cars_pct = sum(car_ownership_no_cars) / sum(census_households)) %>%
+              car_ownership_no_cars_pct = round(sum(car_ownership_no_cars) / sum(census_households), 4)) %>%
     ungroup()
 
   # filter for top and bottom deciles and add label to these.
@@ -319,6 +319,14 @@ summarise_best_worst_quintiles_lsoa21 <- function(lsoa_bus, time_period_name = "
     unite(full_indicator, neighbourhoods, indicator, sep = ": ") %>%
     spread(key = full_indicator,
            value = val)
+
+  # turn numerical cols back to numbers (otherwise they are characters)
+  lsoa_bus_summary[3] <- as.numeric(lsoa_bus_summary[[3]])
+  lsoa_bus_summary[4] <- as.numeric(lsoa_bus_summary[[4]])
+  lsoa_bus_summary[6] <- as.numeric(lsoa_bus_summary[[6]])
+  lsoa_bus_summary[7] <- as.numeric(lsoa_bus_summary[[7]])
+
+  return(lsoa_bus_summary)
 
 }
 
@@ -407,46 +415,52 @@ summarise_top_bottom_neighbourhoods_lsoa21 <- function(lsoa_bustrips_long,
   lsoa_bustrips_timeperiod_summary <- bind_rows(lsoa_bustrips_timeperiod_summary,
                                                 lsoa_bustrips_timeperiod_totals)
 
+
+  lsoa_bustrips_timeperiod_summary[3] <- as.numeric(lsoa_bustrips_timeperiod_summary[[3]])
+  lsoa_bustrips_timeperiod_summary[5] <- as.numeric(lsoa_bustrips_timeperiod_summary[[5]])
+
+
   return(lsoa_bustrips_timeperiod_summary)
 
 }
 
-#' function to make and then save the top and bottom 2010 quintile stats
-make_and_save_200710_2023_quintile_comparisons_lsoa21 <- function(lsoa21_bustrips_2024_quintiles,
-                                                                  lsoa21_bustrips_200710_quintiles,
-                                                                  filename) {
+# Save Excel outputs]
+save_quintile_outputs_lsoa21 <- function(quintile_summary_2024,
+                                         quintile_summary_200710,
+                                         top_bottom_qunitiles_2024,
+                                         top_bottom_qunitiles_200710,
+                                         filename) {
 
-  top_bottom_qunitiles_2024 <<- summarise_top_bottom_neighbourhoods_lsoa21(lsoa21_bustrips_2024_quintiles,
-                                                          time_period_name = "weekday_daytime",
-                                                          qt = quintile_2010,
-                                                          qt_let = quintile_2010_letter)
-
-  top_bottom_qunitiles_200710 <<- summarise_top_bottom_neighbourhoods_lsoa21(lsoa21_bustrips_200710_quintiles,
-                                                            time_period_name = "weekday_daytime",
-                                                            qt = quintile,
-                                                            qt_let = quintile_letter)
-
-  # Save as Excel outputs]
 
   source("../environmental-data-for-change/scripts/save-foe-workbook.R")
 
   full_filename_cdrive <- paste0("outputs/", filename)
-  full_filename_onedrive <- paste0("../../OneDrive - Friends of the Earth/Documents - Environmental Data for Change/Data/FoE Analysis/transport/", filename)
+  full_filename_onedrive <- paste0("../../OneDrive - Friends of the Earth/Documents - Environmental Data for Change/Data/FoE Analysis/transport/November 2024/", filename)
 
   message(paste0("Saving: ", full_filename_cdrive))
   message(paste0("Saving: ", full_filename_onedrive))
 
-  save_as_spreadsheet_multiformat(number_of_tabs = 2,
-                                  tab1_data = top_bottom_qunitiles_200710,
-                                  tab1_name = "2007-10",
-                                  tab2_data = top_bottom_qunitiles_2024,
-                                  tab2_name = "2023",
+  data.frame(id = 1:ncol(top_bottom_qunitiles_200710), sapply(top_bottom_qunitiles_200710, class))
+
+  save_as_spreadsheet_multiformat(number_of_tabs = 4,
+                                  tab1_data = quintile_summary_200710,
+                                  tab2_data = quintile_summary_2024,
+                                  tab3_data = top_bottom_qunitiles_200710,
+                                  tab4_data = top_bottom_qunitiles_2024,
+                                  tab1_name = "1a) A-E stats 2007-10",
+                                  tab2_name = "1b) A-E stats 2023",
+                                  tab3_name = "2a) 2010 quintiles",
+                                  tab4_name = "2b) 2010 quintiles on 2024",
                                   xlsx_path = full_filename_cdrive,
-                                  #alternative_xlsx_path = full_filename_onedrive,
-                                  number_cols_1 = c(3,5),
-                                  percent_cols_1 = 0,
-                                  number_cols_2 = c(3,5),
-                                  percent_cols_2 = 0)
+                                  alternative_xlsx_path = full_filename_onedrive,
+                                  number_cols_1 = c(4,7),
+                                  percent_cols_1 = c(3,6),
+                                  number_cols_2 = c(4,7),
+                                  percent_cols_2 = c(3,6),
+                                  number_cols_3 = c(3,5),
+                                  percent_cols_3 = 0,
+                                  number_cols_4 = c(3,5),
+                                  percent_cols_4 = 0)
 
 }
 
@@ -462,12 +476,34 @@ run_analysis_bustrips_2024_lsoa21 <- function() {
   lsoa21_bustrips_2024_long <- make_lsoa_bustrips_long_lsoa21(lsoa21_bustrips_2024)
   lsoa21_bustrips_2024_quintiles_daytime <- add_200710_quintiles_to_2024_data(lsoa_bustrips_2024 = lsoa21_bustrips_2024, lsoa_bustrips_200710_long = lsoa21_bustrips_200710_quintiles, time_period_name = "weekday_daytime")
 
-  quintile_summary_2024_daytime <- summarise_best_worst_quintiles_lsoa21(lsoa_bus = lsoa21_bustrips_2024_daytime, time_period_name = "weekday_daytime")
+  # MAKE OUTPUTS
+  # top and bottom quintiles with no car ownership stats
+  quintile_summary_2024_daytime <- summarise_best_worst_quintiles_lsoa21(lsoa_bus = lsoa21_bustrips_2024_quintiles_daytime, time_period_name = "weekday_daytime")
   quintile_summary_200710_daytime <- summarise_best_worst_quintiles_lsoa21(lsoa_bus = lsoa21_bustrips_200710_quintiles, time_period_name = "weekday_daytime")
 
-  make_and_save_200710_2023_quintile_comparisons_lsoa21(lsoa21_bustrips_2024_quintiles_daytime,
-                                                        lsoa21_bustrips_200710_quintiles,
-                                                        "bus-services-2010-2024-quintile-comparison.xlsx")
+  #' Top and bottom 2010 quintile stats - allowing comparison of 2010 and 2024 bus service frequencies
+  top_bottom_qunitiles_2024 <- summarise_top_bottom_neighbourhoods_lsoa21(lsoa21_bustrips_2024_quintiles_daytime,
+                                                                          time_period_name = "weekday_daytime",
+                                                                          qt = quintile_2010,
+                                                                          qt_let = quintile_2010_letter)
+
+  top_bottom_qunitiles_200710 <- summarise_top_bottom_neighbourhoods_lsoa21(lsoa21_bustrips_200710_quintiles,
+                                                                            time_period_name = "weekday_daytime",
+                                                                            qt = quintile,
+                                                                            qt_let = quintile_letter)
+
+  # SAVE OUTPUTS
+  # outputs are:
+  #  - quintile_summary_2024_daytime
+  #  - quintile_summary_200710_daytime
+  #  - top_bottom_qunitiles_2024
+  #  - top_bottom_qunitiles_200710
+
+  save_quintile_outputs_lsoa21(quintile_summary_2024_daytime,
+                               quintile_summary_200710_daytime,
+                               top_bottom_qunitiles_2024,
+                               top_bottom_qunitiles_200710,
+                               "bus-services-2010-2024-quintile-comparison.xlsx")
 
 }
 
