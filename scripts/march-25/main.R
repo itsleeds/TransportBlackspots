@@ -42,14 +42,18 @@ onspd <- load_onspd()
 
 #' -----------------------------------------------------------------------------
 
+# fetch lsoa21 level data for buses for baseline year (200710) and latest year (2024)
 lsoa21_buses_2024 <- make_simplified_bustrips_lsoa21_single_year(data_year = 2024)
 lsoa21_buses_200710 <- make_simplified_bustrips_lsoa21_200710()
-
-lsoa21_buses_2024_new <- load_lsoa21_bustrips_newbands(data_year = 2024)
-
-str(lsoa21_buses_2024)
-
-lsoa21_buses_2024 <- make_tph_quintiles(lsoa21_buses_2024)
+lsoa21_buses_2024_new <- make_simplified_bustrips_lsoa21_single_year(data_year = 2024, new = TRUE)
 
 #' -----------------------------------------------------------------------------
+
+# make outputs
+
+t1 <- t1_regional_all_trends(lsoa21_buses_200710, lsoa21_buses_2024)
+t2 <- t2_la_daytime_trends(lsoa21_buses_200710, lsoa21_buses_2024_new)
+t3_bus_quintiles(lsoa21_buses_200710, lsoa21_buses_2024_new)
+t4 <- t4_zero_tph_lsoas(lsoa21_buses_2024_new, threshold = 0.5)
+
 #' -----------------------------------------------------------------------------
