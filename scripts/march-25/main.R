@@ -43,17 +43,45 @@ onspd <- load_onspd()
 #' -----------------------------------------------------------------------------
 
 # fetch lsoa21 level data for buses for baseline year (200710) and latest year (2024)
-lsoa21_buses_2024 <- make_simplified_bustrips_lsoa21_single_year(data_year = 2024)
-lsoa21_buses_200710 <- make_simplified_bustrips_lsoa21_200710()
+# lsoa21_buses_2024 <- make_simplified_bustrips_lsoa21_single_year(data_year = 2024)
+# lsoa21_buses_2010 <- make_simplified_bustrips_lsoa21_single_year(data_year = 2010)
+# lsoa21_buses_200710 <- make_simplified_bustrips_lsoa21_200710()
+lsoa21_buses_2010_new <- make_simplified_bustrips_lsoa21_single_year(data_year = 2010, new = TRUE)
 lsoa21_buses_2024_new <- make_simplified_bustrips_lsoa21_single_year(data_year = 2024, new = TRUE)
 
 #' -----------------------------------------------------------------------------
 
 # make outputs
 
-t1 <- t1_regional_all_trends(lsoa21_buses_200710, lsoa21_buses_2024)
-t2 <- t2_la_daytime_trends(lsoa21_buses_200710, lsoa21_buses_2024_new)
-t3_bus_quintiles(lsoa21_buses_200710, lsoa21_buses_2024_new)
-t4 <- t4_zero_tph_lsoas(lsoa21_buses_2024_new, threshold = 0.5)
+headlines <- make_rurality_comparison_2010_2024(bus_lsoa_2010 = lsoa21_buses_2010_new,
+                                                bus_lsoa_2024 = lsoa21_buses_2024_new,
+                                                time_period_filter = FALSE)
+
+#t1 <- t1_regional_all_trends(lsoa21_buses_200710, lsoa21_buses_2024)
+t1 <- t1_regional_all_trends(lsoa21_buses_2010_new, lsoa21_buses_2024_new)
+
+t2 <- t2_la_daytime_trends(bus_lsoa21_2010 = lsoa21_buses_2010_new, bus_lsoa21_2024 = lsoa21_buses_2024_new)
+
+t3_bus_quintiles(lsoa21_buses_2010_new, lsoa21_buses_2024_new)
+
+# set threshold for zero buses. Any LSOA with service below this will count as having zero service
+zero_bus_threshold = 0.5
+t4 <- t4_zero_tph_lsoas(lsoa21_buses_2024_new, threshold = zero_bus_threshold)
+t4_las <- t4_zero_tph_geog_summary(lsoa21_buses_2024_new, threshold = zero_bus_threshold, oslaua, local_authority)
+t4_pcon24 <- t4_zero_tph_geog_summary(lsoa21_buses_2024_new, threshold = zero_bus_threshold, pcon24, pcon24_name)
+t4_region <- t4_zero_tph_geog_summary(lsoa21_buses_2024_new, threshold = zero_bus_threshold, rgn, region_name)
+
+# t5
+t5 <- t5_best_worst_quintiles_cars(lsoa21_buses_2024_new, time_period_name = "weekday_daytime")
+
+# graph data
+graph1_data <- graph1_summarise_2010_2024_quintile_counts(lsoa21_buses_2024_new,
+                                                          lsoa21_buses_2010_new,
+                                                          time_period_name = "weekday_daytime")
+
 
 #' -----------------------------------------------------------------------------
+
+# save outputs
+save_article_main_tables(t1, t2, t3a = t3d_2024_daytime_range, t3b = t3c_2024_daytime, t4, t5, graph1_data, headlines)
+save_no_service_geogs(t4_region, t4_las, t4_pcon24)
