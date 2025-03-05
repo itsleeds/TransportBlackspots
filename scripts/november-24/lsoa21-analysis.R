@@ -331,7 +331,7 @@ summarise_best_worst_quintiles_lsoa21 <- function(lsoa_bus, time_period_name = "
 }
 
 #' Another function to identify statistics in the top and bottom deciles, this one
-#' just summarises the number of decades and the distribution of TPH in the top
+#' just summarises the number of quintiles and the distribution of TPH in the top
 #' and bottom deciles. However, it is typically used as a comparison on 2010 quintiles
 #' across different years/data sets. These have different column headings in more
 #' recent data, hence the need to take the quintile and quintile letter as function
