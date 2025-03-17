@@ -43,14 +43,12 @@
 
 
 # set up ------------------------------------------------------------------
-
-clear_all = TRUE
+clear_all = FALSE
 source("scripts/november-24/set-up.R")
 
 onspd <- load_onspd(keep_only_current = FALSE)
 
 # run functions -----------------------------------------------------------
-
 lsoa_bustrips_2023 <- load_lsoa_bustrips(onspd, year_list = 2023)
 
 lsoa_bustrips_2023_service <- classify_service_quality(lsoa_bustrips_2023)
@@ -60,8 +58,6 @@ lsoa_bustrips_2023_service <- add_ethnicity_imd_carownership_lsoa(lsoa_bustrips_
 lsoa_bustrips_2023_quintiles <- classify_service_quality_in_quintiles(lsoa_bustrips_2023)
 lsoa_bustrips_2023_quintiles <- add_geography(lsoa_bustrips_2023_quintiles)
 lsoa_bustrips_2023_quintiles <- add_ethnicity_imd_carownership_lsoa(lsoa_bustrips_2023_quintiles)
-
-
 
 # check results -----------------------------------------------------------
 

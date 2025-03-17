@@ -46,11 +46,11 @@ service_quality_quintiles <- function(lsoa_bustrips, tph, tph_quintile) {
                                              rurality == "Rural: Village/Hamlets/Isolated Dwellings" & round({{ tph }}) >= village_4 ~ 2,
                                              rurality == "Rural: Village/Hamlets/Isolated Dwellings" & round({{ tph }}) < village_4 ~ 1)) %>%
 
-    mutate("{{ tph }}_service" := case_when({{ tph_quintile }} == 5 ~ "Very good",
-                                            {{ tph_quintile }} == 4 ~ "Good",
-                                            {{ tph_quintile }} == 3 ~ "Average",
-                                            {{ tph_quintile }} == 2 ~ "Poor",
-                                            {{ tph_quintile }} == 1 ~ "Very poor")) %>%
+    mutate("{{ tph }}_service" := case_when({{ tph_quintile }} == 5 ~ "Qtile 5 (2007-10): Best 20%",
+                                            {{ tph_quintile }} == 4 ~ "Qtile 4 (2007-10)",
+                                            {{ tph_quintile }} == 3 ~ "Qtile 3 (2007-10)",
+                                            {{ tph_quintile }} == 2 ~ "Qtile 2 (2007-10)",
+                                            {{ tph_quintile }} == 1 ~ "Qtile 1 (2007-10): Worst 20%")) %>%
 
     mutate("{{ tph }}_score" := case_when({{ tph_quintile }} == 5 ~ 2,
                                           {{ tph_quintile }} == 4 ~ 1.5,
@@ -193,11 +193,11 @@ calculate_all_service_duration <- function(lsoa_bustrips, weekday_multiplier = 1
 
 make_service_factor <- function(x) {
   x <- factor(x,
-              levels = c("Very good",
-                         "Good",
-                         "Average",
-                         "Poor",
-                         "Very poor"))
+              levels = c("Qtile 5 (2007-10): Best 20%",
+                         "Qtile 4 (2007-10)",
+                         "Qtile 3 (2007-10)",
+                         "Qtile 2 (2007-10)",
+                         "Qtile 1 (2007-10): Worst 20%"))
 }
 
 

@@ -126,22 +126,23 @@ make_oslaua_to_rgn_lup <- function(add_la_names = FALSE) {
 
 source("../geography-lookups/scripts/lookups.R")
 source("../geography-lookups/scripts/filter-geographies.R")
-add_geography <- function(lsoa_df) {
 
-  lsoa_to_msoa_lup <- make_lsoa_to_msoa_lup()
-  lsoa_to_pcon_lup <- make_lsoa11_to_pcon24_one_to_one(lookup_type = "pc")
-  lsoa_to_oslaua_lup <- get_lsoa_to_oslaua_lup()
+add_geography21 <- function(lsoa_df) {
+
+  lsoa21_to_msoa21_lup <- make_lsoa21_to_msoa21_lup()
+  lsoa21_to_pcon24_lup <- make_lsoa21_to_pcon24_one_to_one(lookup_type = "pc")
+  lsoa21_to_oslaua_lup <- get_lsoa21_to_oslaua_lup()
   oslaua_to_rgn_lup <- make_oslaua_to_rgn_lup()
 
-  lsoa_df <- left_join(lsoa_df, lsoa_to_msoa_lup, by = "lsoa11")
-  lsoa_df <- left_join(lsoa_df, lsoa_to_pcon_lup, by = "lsoa11")
-  lsoa_df <- left_join(lsoa_df, lsoa_to_oslaua_lup, by = "lsoa11")
+  lsoa_df <- left_join(lsoa_df, lsoa21_to_msoa21_lup, by = "lsoa21")
+  lsoa_df <- left_join(lsoa_df, lsoa21_to_pcon24_lup, by = "lsoa21")
+  lsoa_df <- left_join(lsoa_df, lsoa21_to_oslaua_lup, by = "lsoa21")
   lsoa_df <- left_join(lsoa_df, oslaua_to_rgn_lup, by = "oslaua")
 
   lsoa_df <- lsoa_df %>%
-    select(lsoa11,
-           msoa11,
-           msoa11_name,
+    select(lsoa21,
+           msoa21,
+           msoa21_name,
            pcon24,
            pcon24_name,
            oslaua,

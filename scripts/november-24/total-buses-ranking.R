@@ -35,6 +35,66 @@ save_as_spreadsheet_multiformat(number_of_tabs = 2,
 
 #  define functions -------------------------------------------------------
 
+get_number_of_runs_per_week <- function(year_list) {
+
+  # read in all data
+  trips_lsoa <- readRDS("data/trips_per_lsoa_by_mode_2004_2023.Rds")
+
+  # filter for buses only
+  bustrips_lsoa <- trips_lsoa %>%
+    filter(route_type == 3)
+
+  # remove any data not associated with a lsoa
+  bustrips_lsoa <- bustrips_lsoa %>%
+    filter(!is.na(zone_id))
+
+  # select year
+  bustrips_lsoa <- bustrips_lsoa %>%
+    filter(year %in% year_list)
+
+  # identify london underground lsoas
+  bustrips_lsoa <- add_london_metro_lsoas(bustrips_lsoa, trips_lsoa)
+
+  # identify rurality (keeps only england and wales LSOAs)
+  bustrips_lsoa <- identify_lsoa_rurality(bustrips_lsoa, onspd)
+
+  # keep fields of interest only
+  bustrips_lsoa <- bustrips_lsoa %>%
+    select(lsoa11 = zone_id,
+           route_type,
+           year,
+           london_underground,
+           ru11ind,
+           urban_rural_cat,
+           rurality,
+           runs_weekday_Morning_Peak,
+           runs_weekday_Midday,
+           runs_weekday_Afternoon_Peak,
+           runs_weekday_Evening,
+           runs_weekday_Night,
+           runs_Sat_Morning_Peak,
+           runs_Sat_Midday,
+           runs_Sat_Afternoon_Peak,
+           runs_Sat_Evening,
+           runs_Sat_Night,
+           runs_Sun_Morning_Peak,
+           runs_Sun_Midday,
+           runs_Sun_Afternoon_Peak,
+           runs_Sun_Evening,
+           runs_Sun_Night)
+
+  bustrips_lsoa <- bustrips_lsoa %>%
+    mutate(runs_weekday_daytime = runs_weekday_Morning_Peak + runs_weekday_Midday + runs_weekday_Afternoon_Peak,
+           runs_weekday_evening = runs_weekday_Evening,
+           runs_sat_daytime = runs_Sat_Morning_Peak + runs_Sat_Midday + runs_Sat_Afternoon_Peak,
+           runs_sat_evening = runs_Sat_Evening,
+           runs_sun_daytime = runs_Sun_Morning_Peak + runs_Sun_Midday + runs_Sun_Afternoon_Peak,
+           runs_sun_evening = runs_Sun_Evening) %>%
+    mutate(runs_total = runs_weekday_daytime + runs_weekday_evening + runs_sat_daytime + runs_sat_evening + runs_sun_daytime + runs_sun_evening)
+
+
+}
+
 
 calculate_total_bus_services <- function(lsoa_bus) {
 
