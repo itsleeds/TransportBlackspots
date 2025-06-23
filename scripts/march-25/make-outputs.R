@@ -2,7 +2,7 @@
 
 # summary stats between rural and urban, london and not london
 make_london_rurality_summary <- function(bus_lsoa,
-                                         time_period_name = "weekday_daytime",
+                                         time_period_name,
                                          year) {
 
   # convert wide table to long table
@@ -39,10 +39,10 @@ make_rurality_comparison_2010_2024 <- function(bus_lsoa_2010,
                                                bus_lsoa_2024,
                                                time_period_filter = FALSE) {
 
-  london_2010 <- make_london_rurality_summary(lsoa21_buses_2010_new,
+  london_2010 <- make_london_rurality_summary(bus_lsoa_2010,
                                               time_period_name = time_period_filter,
                                               year = `2010`)
-  london_2024 <- make_london_rurality_summary(lsoa21_buses_2024_new,
+  london_2024 <- make_london_rurality_summary(bus_lsoa_2024,
                                               time_period_name = time_period_filter,
                                               year = `2024`)
 
@@ -311,15 +311,16 @@ t3_bus_quintiles <- function(lsoa21_buses_200710, lsoa21_buses_2024_new) {
   lsoa21_buses_2010_qt <- make_tph_quintiles(lsoa21_buses_200710)
   lsoa21_buses_2024_qt <- make_tph_quintiles(lsoa21_buses_2024_new)
 
-  t3a_2010_daytime <<- summarise_tph_quintiles(lsoa21_buses_2010_qt,
-                                               filter_by = "weekday_daytime",
-                                               stats = "mean",
-                                               round_fig = 1)
-
-  t3b_2010_daytime_range <<- summarise_tph_quintiles(lsoa21_buses_2010_qt,
-                                                     filter_by = "weekday_daytime",
-                                                     stats = "all",
-                                                     round_fig = 1)
+  # These outputs not used at the moment, so commenting out
+  # t3a_2010_daytime <<- summarise_tph_quintiles(lsoa21_buses_2010_qt,
+  #                                              filter_by = "weekday_daytime",
+  #                                              stats = "mean",
+  #                                              round_fig = 1)
+  #
+  # t3b_2010_daytime_range <<- summarise_tph_quintiles(lsoa21_buses_2010_qt,
+  #                                                    filter_by = "weekday_daytime",
+  #                                                    stats = "all",
+  #                                                    round_fig = 1)
 
   t3c_2024_daytime <<- summarise_tph_quintiles(lsoa21_buses_2024_qt,
                                                filter_by = "weekday_daytime",
@@ -786,5 +787,378 @@ graph1_summarise_2010_2024_quintile_counts <- function(lsoa_bustrips_2024,
                                                         "A: Very best service")
 
   return(quintile_comp_2010_2024)
+
+}
+
+
+#  map outputs ------------------------------------------------------------
+
+#' Four layers for map outputs:
+#'  - Transport authority
+#'  - Local authority
+#'  - Constituency
+#'  - LSOA
+
+#' Fields in each of these files (Saved as csvs) are:
+#'  - geog_code
+#'  - geog_name
+#'  - tph_2010 [Bus services frequency (trips per hour) 2010]
+#'  - tph_2024 [Bus services frequency (trips per hour) 2023]
+#'  - tph1024_chg [Not used in pop ups]
+#'  - tph1024_chg_pct [Change in service frequency 2010 - 2023]
+
+calculate_2010_2024_change <- function(bus_2010_2024) {
+
+  bus_2010_2024 <- bus_2010_2024 %>%
+    mutate(tph1024_chg = round(tph_2024 - tph_2010, 2)) %>%
+    mutate(tph1024_chg_pct = round(tph1024_chg / tph_2010, 4))
+
+  bus_2010_2024 <- bus_2010_2024 %>%
+    mutate(tph1024_chg_pct = ifelse(tph1024_chg_pct == "Inf", 1, tph1024_chg_pct)) %>%
+    mutate(tph1024_chg_pct = ifelse(tph1024_chg_pct == "NaN", NA, tph1024_chg_pct))
+
+}
+
+# LSOA
+# comparison function for 2010 and 2024 using LSOA data
+calculate_lsoa_bus_2010_2024_trends <- function(lsoa_bus_2010,
+                                               lsoa_bus_2024,
+                                               time_period_name,
+                                               set_nas_zero = FALSE,
+                                               new_time_periods = TRUE) {
+
+  # make both data sets long
+  lsoa_bus_2010 <- add_daytime_evening_timeperiod(lsoa_bus_2010, new_periods = new_time_periods)
+  lsoa_bus_2024 <- add_daytime_evening_timeperiod(lsoa_bus_2024, new_periods = new_time_periods)
+
+  lsoa_bus_2010_long <- make_bustrips_long(lsoa_bus_2010)
+  lsoa_bus_2024_long <- make_bustrips_long(lsoa_bus_2024)
+
+  # select tph values only and filter for an individual time periods
+  # 2010
+  lsoa_bus_2010_long <- lsoa_bus_2010_long %>%
+    filter(time_period == time_period_name) %>%
+    select(lsoa21,
+           tph_2010 = tph)
+  # 2024
+  lsoa_bus_2024_long <- lsoa_bus_2024_long %>%
+    filter(time_period == time_period_name) %>%
+    select(lsoa21,
+           tph_2024 = tph)
+
+  # join data together
+  lsoa_bus_2010_2024 <- inner_join(lsoa_bus_2010_long, lsoa_bus_2024_long, by = "lsoa21")
+
+  # Question/TODO: Should NA TPH values be ignored or set to 0? I think 0 as no services
+  if(set_nas_zero) {
+    lsoa_bus_2010_2024 <- lsoa_bus_2010_2024 %>%
+      mutate(tph_2010 = is_na_zero(tph_2010),
+             tph_2024 = is_na_zero(tph_2024))
+  }
+
+
+  # then calculate the changes/trends as tph and %
+  lsoa_bus_2010_2024 <- calculate_2010_2024_change(lsoa_bus_2010_2024)
+
+  # add geography for further aggregations
+  lsoa_bus_2010_2024 <- add_geography21(lsoa_bus_2010_2024)
+
+  return(lsoa_bus_2010_2024)
+
+}
+
+# generic geog summariser
+summarise_bustrends_geog <- function(lsoa_bus_trends, geog_code, geog_name) {
+
+  geog_bus_trends <- lsoa_bus_trends %>%
+    group_by({{ geog_code }},
+             {{ geog_name }}) %>%
+    summarise(tph_2010 = round(mean(tph_2010, na.rm = TRUE), 2),
+              tph_2024 = round(mean(tph_2024, na.rm = TRUE), 2)) %>%
+    ungroup()
+
+  geog_bus_trends <- calculate_2010_2024_change(geog_bus_trends)
+
+
+}
+
+# Transport authority
+make_and_save_geog_trends_csv <- function(lsoa21_buses_2010_new,
+                                          lsoa21_buses_2024_new,
+                                          time_period_label = "weekday_daytime") {
+
+  lsoa_bus_trends <- calculate_lsoa_bus_2010_2024_trends(lsoa21_buses_2010_new,
+                                                         lsoa21_buses_2024_new,
+                                                         time_period_name = time_period_label)
+
+  ta_lup <- make_la_to_transport_authority_lup(remove_la_name = TRUE)
+  lsoa_bus_trends <- left_join(lsoa_bus_trends, ta_lup, by = "oslaua")
+
+  # Transport Authority
+  TA_bus_trends <- summarise_bustrends_geog(lsoa_bus_trends, trans_auth_code, trans_auth_name)
+
+  # Local authority
+  LA_bus_trends <- summarise_bustrends_geog(lsoa_bus_trends, oslaua, local_authority)
+
+  # Constituency
+  PCON24_bus_trends <- summarise_bustrends_geog(lsoa_bus_trends, pcon24, pcon24_name)
+
+  # finalise lsoa trends (remove unnecessary geog columns)
+  lsoa_bus_trends <- lsoa_bus_trends %>%
+    select(lsoa21,
+           msoa21_name,
+           tph_2010,
+           tph_2024,
+           tph1024_chg,
+           tph1024_chg_pct)
+
+  # then add quintiles too for an additional layer
+  lsoa_qts <- make_bus_quintiles_csv(lsoa21_buses_2010_new,
+                                     lsoa21_buses_2024_new,
+                                     time_period_label)
+
+
+  lsoa_bus_trends_qts <- inner_join(lsoa_bus_trends, lsoa_qts, by = "lsoa21")
+
+  time_period_filename <- gsub("_", "-", time_period_label)
+
+  save_map_csvs(lsoa_bus_trends_qts, paste0("lsoa-bus-trends-and-quintiles-", time_period_filename, ".csv"))
+  save_map_csvs(PCON24_bus_trends, paste0("PCON24-bus-trends-", time_period_filename, ".csv"))
+  save_map_csvs(LA_bus_trends, paste0("LA-bus-trends-", time_period_filename, ".csv"))
+  save_map_csvs(TA_bus_trends, paste0("TA-bus-trends-", time_period_filename, ".csv"))
+
+
+}
+
+save_map_csvs <- function(bus_data_for_csv, file_name) {
+
+  if(!dir.exists("outputs/march-25/map-csvs")) {
+    dir.create("outputs/march-25/map-csvs")
+  }
+
+  full_file_name <- paste0("outputs/march-25/map-csvs/", file_name)
+
+  write.csv(bus_data_for_csv,
+            full_file_name,
+            row.names = FALSE,
+            na = "")
+
+
+}
+
+# quintiles map output
+
+make_bus_quintiles_csv <- function(lsoa21_buses_2010, lsoa21_buses_2024, time_period_label = "weekday_daytime") {
+
+  # identify both sets of quintiles in 2010 and 2024
+  lsoa_qts <- add_200710_quintiles_to_2024_data(lsoa21_buses_2010,
+                                                lsoa21_buses_2024,
+                                                time_period_name = time_period_label)
+
+
+  # add car ownership by using common functions from another repository
+  source("../environmental-data-for-change/scripts/useful-functions.R")
+  source("../environmental-data-for-change/scripts/transport/car-ownership.R")
+  lsoa_qts <- add_noncar_owners_to_lsoa21_data(lsoa_qts)
+
+  # finalise data set
+  lsoa_qts <- lsoa_qts %>%
+    select(lsoa21,
+           #year,
+           rurality,
+           urban_rural_cat,
+           #time_period,
+           # tph,
+           # tph_2010,
+           #tph_qt,
+           tph_qt_id,
+           #tph_qt_2010,
+           tph_qt_2010_id,
+           #census_households,
+           #car_ownership_no_cars,
+           car_ownership_no_cars_pct,
+           #car_ownership_no_cars_decile
+           )
+
+  # relabel quintiles
+  lsoa_qts <- lsoa_qts %>%
+    mutate(tph_qt_id = case_when(tph_qt_id == "A" ~ "Quintile 1: Best 20%",
+                                 tph_qt_id == "B" ~ "Quintile 2",
+                                 tph_qt_id == "C" ~ "Quintile 3",
+                                 tph_qt_id == "D" ~ "Quintile 4",
+                                 tph_qt_id == "E" ~ "Quintile 5: Worst 20%")) %>%
+    mutate(tph_qt_2010_id = case_when(tph_qt_2010_id == "A" ~ "Quintile 1: Best 20%",
+                                 tph_qt_2010_id == "B" ~ "Quintile 2",
+                                 tph_qt_2010_id == "C" ~ "Quintile 3",
+                                 tph_qt_2010_id == "D" ~ "Quintile 4",
+                                 tph_qt_2010_id == "E" ~ "Quintile 5: Worst 20%")) %>%
+    rename(bus_quintile_2024 = tph_qt_id,
+           bus_quintile_2010 = tph_qt_2010_id)
+
+  table(lsoa_qts$bus_quintile_2024, useNA = "ifany")
+  table(lsoa_qts$bus_quintile_2010, useNA = "ifany")
+
+  return(lsoa_qts)
+
+}
+
+# MAPS - TEST DATA --------------------------------------------------------
+
+
+# MAPS --------------------------------------------------------------------
+#
+make_map_of_bus_service_lsoa21 <- function(lsoa_bustrips, map_var, type, convert_to_percent, popup_var_list = c("lsoa21")) {
+
+  if(convert_to_percent) {
+    pct_cols <- names(lsoa_bustrips)[grepl("pct|[%]", names(lsoa_bustrips))]
+      lsoa_bustrips <- lsoa_bustrips %>%
+        mutate(across(all_of(pct_cols), \(x) round(x * 100, 1))) %>%
+        mutate(across(all_of(pct_cols), \(x) ifelse(x > 50, 50, x)))
+  }
+
+  lsoas <- st_read("../gis-data/boundaries/lsoa/LSOA_2021_EW_BSC_V4/LSOA_2021_EW_BSC_V4.shp",
+                   quiet = TRUE)
+  lsoas <- lsoas %>%
+    select(lsoa21 = LSOA21CD,
+           geometry)
+
+  lsoa_bustrips <- left_join(lsoas, lsoa_bustrips, by = "lsoa21")
+
+  if(type == "scale") {
+    foe_scale <- tm_scale_intervals(values = "rd_yl_gn",
+                                    n = 6,
+                                    midpoint = 0)
+  }
+
+  if(type == "quintile") {
+    foe_scale <- tm_scale_categorical(values = "-rd_yl_gn",
+                                      n = 5)
+  }
+
+  t_lsoa <- tm_shape(lsoa_bustrips) +
+      tm_polygons(fill = map_var,
+                  fill.scale = foe_scale,
+                  col_alpha = 0,
+                  popup.vars = popup_var_list,
+                  fill.legend = tm_legend(position = tm_pos_in())) +
+      tm_layout(
+        frame = FALSE,
+        legend.frame = FALSE,
+        legend.title.fontface = "bold",
+        legend.title.color = "#1e234d",
+        legend.title.size = 0.8,
+        legend.text.fontface = "bold",
+        legend.text.color = "#1e234d",
+        legend.text.size = 0.7
+      )
+
+  t_lsoa
+
+}
+
+# make_map_of_bus_service_lsoa21(lsoa_bus_trends_qts, "bus_quintile_2024", type = "quintile")
+# make_map_of_bus_service_lsoa21(lsoa_bus_trends_qts, "bus_quintile_2010", type = "quintile")
+# make_map_of_bus_service_lsoa21(lsoa_bus_trends_qts, "tph1024_chg_pct", type = "scale")
+
+make_map_of_bus_service_oslaua <- function(lsoa_bustrips, tph, tph_service) {
+
+  la_bustrips <- LA_bus_trends
+  la_bustrips <- la_bustrips %>%
+    transmute(oslaua,
+              local_authority,
+              tph_2010,
+              tph_2024,
+              tph1024_chg,
+              tph1024_chg_pct = tph1024_chg_pct * 100) %>%
+    mutate(tph1024_chg_pct = ifelse(tph1024_chg_pct > 50, 50, tph1024_chg_pct))
+
+  las <- st_read("../gis-data/boundaries/local-authorities/LAD_MAY_2024_UK_BUC/LAD_DEC_24_UK_BUC.shp",
+                   quiet = TRUE)
+  las <- las %>%
+    select(oslaua = LAD24CD,
+           geometry)
+
+  la_bustrips <- left_join(las, la_bustrips, by = "oslaua")
+
+  foe_scale <- tm_scale_intervals(values = "rd_yl_gn",
+                                  n = 6,
+                                  midpoint = 0)
+
+  tmap_mode("view")
+
+  t_la <- tm_shape(la_bustrips) +
+    tm_polygons(fill = "tph1024_chg_pct",
+                fill.scale = foe_scale,
+                col_alpha = 0,
+                popup.vars = c("local_authority",
+                               "tph_2010",
+                               "tph_2024",
+                               "tph1024_chg",
+                               "tph1024_chg_pct"),
+                fill.legend = tm_legend(position = tm_pos_in())) +
+    tm_layout(
+      frame = FALSE,
+      legend.frame = FALSE,
+      legend.title.fontface = "bold",
+      legend.title.color = "#1e234d",
+      legend.title.size = 0.8,
+      legend.text.fontface = "bold",
+      legend.text.color = "#1e234d",
+      legend.text.size = 0.7
+    )
+
+  t_la
+
+}
+
+
+make_map_of_bus_service_oslaua <- function(lsoa_bustrips, tph, tph_service) {
+
+  pcon_bustrips <- PCON24_bus_trends
+  pcon_bustrips <- pcon_bustrips %>%
+    transmute(pcon24,
+              pcon24_name,
+              tph_2010,
+              tph_2024,
+              tph1024_chg,
+              tph1024_chg_pct = tph1024_chg_pct * 100) %>%
+    mutate(tph1024_chg_pct = ifelse(tph1024_chg_pct > 50, 50, tph1024_chg_pct))
+
+  pcons <- st_read("../gis-data/boundaries/parliamentary-constituencies/Westminster_Parliamentary_Constituencies_July_2024_Boundaries_UK_BSC/PCON_JULY_2024_UK_BSC.shp",
+                 quiet = TRUE)
+  pcons <- pcons %>%
+    select(pcon24 = PCON24CD,
+           geometry)
+
+  pcon_bustrips <- left_join(pcons, pcon_bustrips, by = "pcon24")
+
+  foe_scale <- tm_scale_intervals(values = "rd_yl_gn",
+                                  n = 6,
+                                  midpoint = 0)
+
+  tmap_mode("view")
+
+  t_pcon <- tm_shape(pcon_bustrips) +
+    tm_polygons(fill = "tph1024_chg_pct",
+                fill.scale = foe_scale,
+                col_alpha = 0,
+                popup.vars = c("pcon24_name",
+                               "tph_2010",
+                               "tph_2024",
+                               "tph1024_chg",
+                               "tph1024_chg_pct"),
+                fill.legend = tm_legend(position = tm_pos_in())) +
+    tm_layout(
+      frame = FALSE,
+      legend.frame = FALSE,
+      legend.title.fontface = "bold",
+      legend.title.color = "#1e234d",
+      legend.title.size = 0.8,
+      legend.text.fontface = "bold",
+      legend.text.color = "#1e234d",
+      legend.text.size = 0.7
+    )
+
+  t_pcon
 
 }

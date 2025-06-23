@@ -32,6 +32,7 @@ source("scripts/march-25/make-outputs.R")
 source("scripts/march-25/save-outputs.R")
 
 source("scripts/march-25/onspd.R")
+source("scripts/march-25/geography.R")
 
 
 options(dplyr.summarise.inform = FALSE)
@@ -44,3 +45,6 @@ if(!dir.exists("outputs/march-25")) {
 if(!dir.exists("outputs/march-25/plots")) {
   dir.create("outputs/march-25/plots")
 }
+
+# common function
+is_na_zero <- function(x) ifelse(is.na(x), 0, x)

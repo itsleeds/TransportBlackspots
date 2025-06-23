@@ -168,7 +168,7 @@ make_map_data_pcon23 <- function() {
 # https://atip.uk/
 
 #' Make LA to Combined Authority lookup
-la_to_transport_authority_lup <- function() {
+la_to_transport_authority_lup <- function(remove_la_name = TRUE) {
 
   # read in data set
   la_to_metro_lup <- read.csv("data/lsoa/Local_Authority_District_to_Combined_Authority_(April_2023)_Lookup_in_England.csv")
@@ -216,6 +216,12 @@ la_to_transport_authority_lup <- function() {
            trans_auth_name = ifelse(is.na(trans_auth_name), local_authority_name, trans_auth_name)) %>%
     filter(grepl("^E|W", oslaua)) %>%
     mutate(auth_type = ifelse(local_authority_name == trans_auth_name, "unitary-authority", auth_type))
+
+  if(remove_la_name) {
+    oslaua_to_TA_lup$local_authority_name <- NULL
+  }
+
+  return(oslaua_to_TA_lup)
 
 }
 
