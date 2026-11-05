@@ -9,7 +9,7 @@ if(clear_all) {
 
 # load packages
 load_packages <- function() {
-  library(UK2GTFS)
+  #library(UK2GTFS)
   library(tidyverse)
   library(lubridate)
   library(tmap)
